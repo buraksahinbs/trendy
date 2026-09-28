@@ -473,6 +473,9 @@ async function main() {
     });
 
     await step("Fiyat kuralları + kur: fiyat hesaplanır, büyük değişim onaya düşer", async () => {
+      // Kurallar tek tek eklenirken araya giren bir senkron B1'i yalnızca genel kuralla
+      // fiyatlayabilir (yarış). Kurallar eklenirken senkron durdurulur, sonra tek seferde çalışır.
+      check((await http("PATCH", "/settings", { syncPaused: true })).status === 200, "durdurma");
       const bad = await http("PATCH", "/settings", { fxRates: { USD: 40 } });
       check(bad.status === 200, `kur ${bad.status}`);
       const g = await http("POST", "/pricing-rules", {
@@ -487,6 +490,8 @@ async function main() {
         multiplier: 2,
       });
       check(b.status === 201, `marka kuralı ${b.status}`);
+      check((await http("PATCH", "/settings", { syncPaused: false })).status === 200, "devam");
+      await http("POST", "/trendyol/sync");
       await waitFor("fiyat gönderimi", async () =>
         mock.calls.some((c) => c.items.some((i) => i.barcode === "8690000000035" && i.salePrice)),
       );
