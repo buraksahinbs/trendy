@@ -25,6 +25,7 @@ describe.skipIf(!url)("auth API", () => {
       limiter: new InMemoryRateLimiter(() => clock.getTime()),
       sessionTtlMs: 24 * 3_600_000,
       secureCookies: false,
+      queue: { enqueueSupplierFetch: async () => ({ queued: true }), close: async () => {} },
       now: () => clock,
     };
     app = await buildApp(deps);

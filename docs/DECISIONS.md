@@ -93,3 +93,17 @@
 
 **Karar:** `redact` yalnızca düz nesneleri, dizileri ve Error'ları tarar. Date, URL, Buffer ve Fastify req/res gibi sınıf örneklerini olduğu gibi bırakır; bunları pino serializer'ları güvenli alanlarla yazar.
 **Gerekçe:** Önceki hâli bu nesneleri boş nesneye çeviriyordu (istek logları `"req":{}` çıkıyordu). Fastify'ın req serializer'ı header ve cookie yazmadığı için gizli bilgi riski yok; testle doğrulandı.
+
+## 2026-09-28 — Tedarikçi XML çekimi ve kuyruk
+
+**Karar:** `apps/worker` BullMQ (v6) ile `xml-fetch` kuyruğunu işler; kuyruk tanımları ve zamanlama `packages/jobs`'ta, API ve worker ortak kullanır. Zamanlayıcı her dakika zamanı gelen tedarikçileri kuyruğa ekler; iş kimliği `supplier-{id}` olduğundan aynı tedarikçi için aynı anda tek çekim olur.
+**Ayrıntılar:**
+
+- Her ürünün feed içinde tekil bir kimliği olmalı (`suppliers.external_id_path`, ör. `UrunKodu`, `@id`). Tanımlı değilse çekim "yapılandırma eksik" olarak atlanır. `POST /suppliers/detect` ürün düğümü yolu ve kimlik alanı önerir.
+- Kaybolan ürün işaretlemesi (`missing_since`) yalnızca feed hatasız sonuna kadar okunduğunda ve güvenlik freni devrede değilken yapılır. Yarıda kesilen veya bozuk feed ürünleri kayıp göstermez.
+- Güvenlik freni devredeyken `last_item_count` güncellenmez: art arda gelen bozuk feed'ler de frene takılır.
+- Zamanlayıcı `last_attempt_at`'e bakar (başarısız feed dakikada bir denenmesin). Cron ifadeleri Türkiye saatiyle yorumlanır; en kısa aralık 15 dakika.
+- Kalıcı hatalar (bozuk XML, 4xx, engelli adres) tekrar denenmez; ağ hatası, zaman aşımı ve 5xx 3 kez üstel geri çekilmeyle denenir. Kalıcı geçmiş `job_logs`'ta, Redis'te bitmiş iş tutulmaz.
+- Stok değişikliği bu job'un işi değil; kanonik ürün ve senkron job'ları (Faz 5, 9) `missing_since` ve ham veriye bakar.
+
+**Alternatif:** Tedarikçi başına BullMQ Job Scheduler. Tedarikçi her değiştiğinde zamanlayıcıyla senkron tutmak gerekirdi; tek bir tarayıcı daha basit ve kendini onarır.

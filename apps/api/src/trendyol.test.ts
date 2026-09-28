@@ -28,6 +28,7 @@ describe.skipIf(!url)("Trendyol API bilgileri uçları", () => {
       limiter: new InMemoryRateLimiter(),
       sessionTtlMs: 3_600_000,
       secureCookies: false,
+      queue: { enqueueSupplierFetch: async () => ({ queued: true }), close: async () => {} },
     };
     app = await buildApp(deps);
 

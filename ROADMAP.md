@@ -356,15 +356,15 @@ docs/
 
 **Hedef:** Büyük ve formatı birbirinden farklı XML'leri güvenle okumak.
 
-- [ ] Tedarikçi ekleme: ad, feed URL, opsiyonel Basic Auth veya query token, çekim sıklığı.
+- [x] Tedarikçi ekleme: ad, feed URL, opsiyonel Basic Auth veya query token, çekim sıklığı. _(API: `/suppliers`; Basic Auth şifreli. Query token URL içinde verilebilir. Çekim aralığı en az 15 dk.)_
 - [x] İndirme: zaman aşımı, maksimum boyut sınırı, gzip desteği, HTTP ETag/Last-Modified ile gereksiz indirmeyi önleme (sunucu destekliyorsa).
 - [x] **Güvenlik:** SSRF koruması (özel/iç IP aralıklarına istek yasak, yalnızca http/https), XXE koruması (harici entity çözümleme kapalı), "billion laughs" türü entity patlamalarına karşı koruma.
 - [x] Karakter kodlaması: XML deklarasyonundan oku. Yoksa veya hatalıysa kullanıcının seçtiği kodlamayı uygula (UTF-8, ISO-8859-9, Windows-1254 seçenekleri).
 - [x] **Streaming** ayrıştırma: dosya belleğe tamamen alınmaz. Tekrarlayan "ürün düğümü" yolu (ör. `/Urunler/Urun`) kullanıcı tarafından seçilir veya otomatik önerilir.
-- [~] Her ürün düğümü JSON'a çevrilip `supplier_products.raw`'a yazılır. İçerik hash'i ile değişmeyen kayıtlar atlanır. _(JSON dönüşümü ve hash hazır; DB yazımı worker ile gelecek.)_
-- [ ] **Kaybolan ürünler:** Feed'de artık bulunmayan ürünler için yapılandırılabilir politika (varsayılan: stok = 0).
-- [~] _(Kontrol fonksiyonu `checkFeedShrink` hazır; worker'a bağlanıp uyarı ekranı yapılacak.)_ **Güvenlik freni:** Yeni feed önceki çekime göre ürünlerin büyük bir kısmını (ör. %50'den fazlasını) kaybetmişse otomatik stok sıfırlama **durdurulur** ve kullanıcıya uyarı gösterilir. (Bozuk veya boş gelen feed tüm mağazayı kapatmasın.)
-- [ ] Önizleme: İlk N ürünü ağaç görünümünde gösteren API ucu (eşleştirme ekranı için).
+- [x] Her ürün düğümü JSON'a çevrilip `supplier_products.raw`'a yazılır. İçerik hash'i ile değişmeyen kayıtlar atlanır. _(`apps/worker`: kimlik alanına (`externalIdPath`) göre gruplar hâlinde upsert; yeni/değişen/değişmeyen sayıları loglanıyor. Kimliksiz ve tekrarlanan ürünler sayılıp atlanıyor.)_
+- [~] **Kaybolan ürünler:** Feed'de artık bulunmayan ürünler için yapılandırılabilir politika (varsayılan: stok = 0). _(Kaybolanlar `missing_since` ile işaretleniyor, geri gelince işaret kalkıyor. Stok = 0 etkisi senkron job'unda (Faz 9) uygulanacak.)_
+- [x] _(Worker'a bağlı: fren devredeyse kayıp işaretlenmez, referans ürün sayısı korunur, işlem loguna `shrinkBlocked` yazılır; panel uyarı gösterir.)_ **Güvenlik freni:** Yeni feed önceki çekime göre ürünlerin büyük bir kısmını (ör. %50'den fazlasını) kaybetmişse otomatik stok sıfırlama **durdurulur** ve kullanıcıya uyarı gösterilir. (Bozuk veya boş gelen feed tüm mağazayı kapatmasın.)
+- [x] Önizleme: İlk N ürünü ağaç görünümünde gösteren API ucu (eşleştirme ekranı için). _(`POST /suppliers/detect`: ürün düğümü yolu + kimlik alanı önerisi + örnek ürünler; `GET /suppliers/:id/products`: sayfalı ham ürünler.)_
 - [~] _(Bozuk XML ve 100.000 ürünlük sentetik test geçiyor; gerçek XML örnekleri bekleniyor.)_ Testler: Faz 0'da toplanan 3 gerçek XML + bozuk XML + çok büyük sentetik XML (ör. 100.000 ürün) ile bellek kullanımı testi.
 
 **Kabul kriterleri:** 100.000 ürünlük XML sabit bellek kullanımıyla işleniyor, 3 gerçek feed doğru okunuyor, güvenlik testleri geçiyor.

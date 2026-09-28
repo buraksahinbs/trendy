@@ -14,10 +14,16 @@
       "path": "packages/trendyol-client"
     },
     {
+      "path": "packages/jobs"
+    },
+    {
       "path": "packages/db"
     },
     {
       "path": "apps/api"
+    },
+    {
+      "path": "apps/worker"
     }
   ]
 }

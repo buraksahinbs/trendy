@@ -1,11 +1,13 @@
 import cookie from "@fastify/cookie";
 import type { Db, MemberRole, SessionInfo } from "@trendy/db";
 import { getSession } from "@trendy/db";
+import type { JobQueue } from "@trendy/jobs";
 import type { Logger, SecretBox } from "@trendy/shared";
 import type { RateLimiter } from "@trendy/trendyol-client";
 import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
 import { ZodError } from "zod";
 import { authRoutes } from "./routes/auth.js";
+import { jobRoutes, supplierRoutes } from "./routes/suppliers.js";
 import { trendyolRoutes } from "./routes/trendyol.js";
 
 export interface AppDeps {
@@ -13,6 +15,9 @@ export interface AppDeps {
   secretBox: SecretBox;
   /** Giriş denemesi sınırlaması (brute-force). Üretimde Redis tabanlı olmalı. */
   limiter: RateLimiter;
+  queue: JobQueue;
+  /** Yalnızca testler için: feed analizinde yerel adreslere izin. */
+  feedDownloadOptions?: { allowPrivateNetwork?: boolean };
   logger?: Logger;
   sessionTtlMs: number;
   /** Üretimde true: cookie yalnızca HTTPS ile gönderilir ve `__Host-` önekini alır. */
@@ -93,6 +98,8 @@ export async function buildApp(deps: AppDeps) {
   app.get("/health", async () => ({ ok: true }));
   await app.register(authRoutes, { prefix: "/auth" });
   await app.register(trendyolRoutes, { prefix: "/trendyol" });
+  await app.register(supplierRoutes, { prefix: "/suppliers" });
+  await app.register(jobRoutes, { prefix: "/jobs" });
   return app;
 }
 

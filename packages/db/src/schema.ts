@@ -146,6 +146,8 @@ export const suppliers = pgTable(
     encoding: text("encoding"),
     /** Tekrarlayan ürün düğümünün yolu, ör. `/Urunler/Urun`. */
     itemPath: text("item_path"),
+    /** Ürün düğümü içindeki tekil kimlik alanı (`getAtPath` yolu), ör. `UrunKodu`, `@id`. */
+    externalIdPath: text("external_id_path"),
     scheduleCron: text("schedule_cron").notNull().default("*/30 * * * *"),
     active: boolean("active").notNull().default(true),
     /** Acil durdurma (Faz 9): yalnızca bu tedarikçi. */
@@ -153,6 +155,8 @@ export const suppliers = pgTable(
     etag: text("etag"),
     lastModified: text("last_modified"),
     lastFetchedAt: ts("last_fetched_at"),
+    /** Başarılı olsun olmasın son çekim denemesi; zamanlayıcı buna bakar (başarısız feed dakikada bir denenmesin). */
+    lastAttemptAt: ts("last_attempt_at"),
     /** Güvenlik freni (`checkFeedShrink`) için bir önceki çekimdeki ürün sayısı. */
     lastItemCount: integer("last_item_count"),
     createdAt: createdAt(),
