@@ -15,6 +15,8 @@ export interface SupplierInput {
   feedUrl: string;
   itemPath?: string | null;
   externalIdPath?: string | null;
+  /** Doğrulanmış `MappingConfig`; null eşleştirmeyi kaldırır. */
+  mapping?: unknown;
   encoding?: string | null;
   scheduleCron?: string;
   active?: boolean;
@@ -31,6 +33,7 @@ const publicColumns = {
   feedUrl: suppliers.feedUrl,
   itemPath: suppliers.itemPath,
   externalIdPath: suppliers.externalIdPath,
+  mapping: suppliers.mapping,
   encoding: suppliers.encoding,
   scheduleCron: suppliers.scheduleCron,
   active: suppliers.active,
@@ -273,6 +276,8 @@ export async function listSupplierProducts(
       raw: supplierProducts.raw,
       lastSeenAt: supplierProducts.lastSeenAt,
       missingSince: supplierProducts.missingSince,
+      normalizeIssues: supplierProducts.normalizeIssues,
+      normalizedAt: supplierProducts.normalizedAt,
     })
     .from(supplierProducts)
     .where(where)

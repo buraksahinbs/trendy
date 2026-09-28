@@ -6,15 +6,20 @@ import {
   listSupplierProducts,
   listSuppliers,
   setSupplierAuth,
+  supplierValidationReport,
   updateSupplier,
   withTenant,
 } from "@trendy/db";
 import { validateFetchCron } from "@trendy/jobs";
 import {
+  createReadinessIssues,
   detectFeedFromUrl,
   FeedDownloadError,
+  mapItem,
+  mappingConfigSchema,
   SUPPORTED_ENCODINGS,
   XmlParseError,
+  type XmlValue,
 } from "@trendy/xml-ingest";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
@@ -78,6 +83,10 @@ const detectBody = z.object({
 const pageQuery = z.object({
   limit: z.coerce.number().int().min(1).max(200).default(50),
   offset: z.coerce.number().int().min(0).default(0),
+});
+const previewBody = z.object({
+  mapping: mappingConfigSchema,
+  limit: z.number().int().min(1).max(50).default(20),
 });
 const jobsQuery = z.object({
   limit: z.coerce.number().int().min(1).max(200).default(50),
@@ -184,6 +193,55 @@ export async function supplierRoutes(app: FastifyInstance) {
     if (!(await withTenant(db, tenantId, (tx) => getSupplier(tx, id)))) throw notFound();
     const r = await queue.enqueueSupplierFetch({ tenantId, supplierId: id, trigger: "manual" });
     return reply.status(202).send(r);
+  });
+
+  /** Alan eşleştirmesini kaydeder; yeniden normalizasyon için çekim kuyruğa eklenir. */
+  app.put("/:id/mapping", async (req) => {
+    const { tenantId } = requireTenant(req, ["owner"]);
+    const { id } = idParam.parse(req.params);
+    const mapping = mappingConfigSchema.parse(req.body);
+    const s = await withTenant(db, tenantId, (tx) => updateSupplier(tx, id, { mapping }));
+    if (!s) throw notFound();
+    await queue.enqueueSupplierFetch({ tenantId, supplierId: id, trigger: "manual" });
+    return s;
+  });
+
+  /**
+   * Kaydetmeden önizleme: mevcut ham ürünlerin ilk N tanesine eşleştirmeyi uygular, kanonik
+   * çıktıyı ve sorunları döner (eşleştirme ekranı).
+   */
+  app.post("/:id/mapping/preview", async (req) => {
+    const { tenantId } = requireTenant(req);
+    const { id } = idParam.parse(req.params);
+    const { mapping, limit } = previewBody.parse(req.body);
+    const page = await withTenant(db, tenantId, async (tx) => {
+      if (!(await getSupplier(tx, id))) throw notFound();
+      return listSupplierProducts(tx, id, { limit, offset: 0 });
+    });
+    const items = page.items.map((row) => {
+      const { product, issues } = mapItem(row.raw as XmlValue, row.externalId, mapping);
+      return {
+        externalId: row.externalId,
+        product,
+        issues,
+        createMissing: product ? createReadinessIssues(product) : [],
+      };
+    });
+    return {
+      total: page.total,
+      sampled: items.length,
+      valid: items.filter((i) => i.product && !i.issues.some((x) => x.level === "error")).length,
+      items,
+    };
+  });
+
+  app.get("/:id/report", async (req) => {
+    const { tenantId } = requireTenant(req);
+    const { id } = idParam.parse(req.params);
+    return withTenant(db, tenantId, async (tx) => {
+      if (!(await getSupplier(tx, id))) throw notFound();
+      return supplierValidationReport(tx, id);
+    });
   });
 
   app.get("/:id/products", async (req) => {

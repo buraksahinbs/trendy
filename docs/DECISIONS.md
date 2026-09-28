@@ -113,3 +113,18 @@
 **Karar:** Doğrulama `GET .../products/approved/inventory-and-price?page=0&size=1` ile yapılır (Product Integration Read grubu, salt-okuma). Sunucu hatasında tekrar denenmez (kullanıcı bekliyor); 401 → bilgiler hatalı, 403 → yetki, stage 503 → IP yetkilendirmesi yok olarak ayrıştırılır. Başarıda `verified_at` yazılır ve onaylı content sayısı gösterilir.
 **Gerekçe:** Hiçbir veri değiştirmez; canlı ortamda güvenle çalışır. Aynı zamanda senkronun kullanacağı servise erişimi de kanıtlar.
 **Alternatif:** Marka/kategori listesi. Satıcıya özel değil, satıcı yetkisini kanıtlamaz.
+
+## 2026-09-28 — Alan eşleştirme ve normalizasyon
+
+**Karar:** Eşleştirme tedarikçi başına tek bir doğrulanmış JSON (`suppliers.mapping`, `MappingConfig` v1). Kullanılmayan `supplier_field_mappings` tablosu kaldırıldı. Normalizasyon çekimin sonunda çalışır ve yalnızca `hash` veya eşleştirmesi değişen ham ürünleri işler (`normalized_hash = hash:eşleştirmeÖzeti`).
+**Ayrıntılar:**
+
+- İki varyant yapısı: `flat` (her düğüm bir varyant, model koduyla gruplanır) ve `nested` (`variantPath` altında liste; `../` üst düğümden okur).
+- Kullanıcı tanımlı **regex desteklenmez**: felaket geri izleme (ReDoS) worker'ı kilitleyebilir. Yerine bul-değiştir, böl-al, değer eşleme vardır.
+- Stok tamsayı: "1.500" ve "1,500" (3 haneli gruplar) 1500 okunur.
+- Çakışma: başka tedarikçinin model kodu veya başka ham ürünün barkodu gelirse mevcut kayıt korunur, sorun raporlanır. Sahipsiz kayıtlar (Trendyol'dan içe aktarılan) sahiplenilir.
+- Üründen çıkan veya geçersizleşen varyant silinmez: sahipliği bırakılır, stoğu 0 yapılır (Trendyol'a 0 gider, gönderim geçmişi korunur).
+- Kaybolan ham ürünler normalize edilmez; stokları senkronda `missingPolicy`'e göre (varsayılan 0) belirlenir.
+
+**Gerekçe:** Tek JSON atomik kaydedilir ve sürümlenir; önizleme aynı motoru kullandığı için "ekranda gördüğün = senkrona giden".
+**Alternatif:** Alan başına satır (eski tablo). Varyant modu, dönüşüm zinciri ve özellik listesi için ek tablolar gerekirdi.

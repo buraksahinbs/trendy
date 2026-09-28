@@ -19,6 +19,31 @@ export function getAtPath(item: XmlValue, path: string): string | undefined {
   return typeof text === "string" ? text.trim() || undefined : undefined;
 }
 
+/**
+ * `getAtPath` gibi, ama tekrarlanan elemanların hepsini döner (ör. birden fazla `<Resim>`).
+ * Boş değerler atlanır, sıra korunur.
+ */
+export function getAllAtPath(item: XmlValue, path: string): string[] {
+  let cur: XmlValue[] = [item];
+  for (const key of path.split(".").filter(Boolean)) {
+    const next: XmlValue[] = [];
+    for (const c of cur) {
+      if (typeof c === "string") continue;
+      const v = c[key];
+      if (v === undefined) continue;
+      if (Array.isArray(v)) next.push(...v);
+      else next.push(v);
+    }
+    cur = next;
+  }
+  const out: string[] = [];
+  for (const c of cur) {
+    const text = typeof c === "string" ? c : c["#text"];
+    if (typeof text === "string" && text.trim()) out.push(text.trim());
+  }
+  return out;
+}
+
 export interface IdFieldSuggestion {
   path: string;
   samples: string[];

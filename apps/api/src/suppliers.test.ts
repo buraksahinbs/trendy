@@ -43,7 +43,7 @@ describe.skipIf(!url)("tedarikçi uçları", () => {
 
   const call = (
     who: keyof typeof users,
-    method: "GET" | "POST" | "PATCH" | "DELETE",
+    method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE",
     path: string,
     payload?: object,
   ) =>
@@ -292,5 +292,105 @@ describe.skipIf(!url)("tedarikçi uçları", () => {
     for (let i = 0; i < 12; i++)
       last = (await call("other", "POST", "/suppliers/detect", { feedUrl })).statusCode;
     expect(last).toBe(429);
+  });
+
+  describe("alan eşleştirme", () => {
+    const mapping = {
+      version: 1,
+      variantMode: "flat",
+      fields: {
+        productMainId: { path: "Model" },
+        title: { path: "Ad" },
+        barcode: { path: "Barkod" },
+        stock: { path: "Stok" },
+      },
+    };
+
+    async function supplierWithRaw() {
+      const { id } = (await call("owner", "POST", "/suppliers", valid)).json();
+      const tenantId = users.owner.tenantId;
+      await withTenant(deps.db, tenantId, (tx) =>
+        upsertSupplierProducts(tx, tenantId, id, [
+          {
+            externalId: "1",
+            raw: { Model: "M1", Ad: "Ürün", Barkod: "B-1", Stok: "4" },
+            hash: "h1",
+          },
+          {
+            externalId: "2",
+            raw: { Model: "M2", Ad: "Ürün 2", Barkod: "B/2", Stok: "1" },
+            hash: "h2",
+          },
+        ]),
+      );
+      return id as number;
+    }
+
+    it("önizleme kaydetmeden kanonik çıktıyı ve sorunları gösterir", async () => {
+      const id = await supplierWithRaw();
+      const res = await call("staff", "POST", `/suppliers/${id}/mapping/preview`, {
+        mapping,
+        limit: 10,
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json();
+      expect(body).toMatchObject({ total: 2, sampled: 2, valid: 1 });
+      expect(body.items[0]).toMatchObject({
+        externalId: "1",
+        product: { productMainId: "M1", variants: [{ barcode: "B-1", stock: 4 }] },
+        issues: [],
+      });
+      expect(body.items[1].product).toBeNull();
+      expect(body.items[1].issues[0]).toMatchObject({ field: "barcode", code: "invalid_chars" });
+      expect(body.items[0].createMissing).toEqual(expect.arrayContaining(["brandName", "images"]));
+      // Önizleme kaydetmez.
+      expect((await call("owner", "GET", `/suppliers/${id}`)).json().mapping).toBeNull();
+    });
+
+    it("owner kaydeder; çekim kuyruğa eklenir; staff kaydedemez", async () => {
+      const id = await supplierWithRaw();
+      queued.length = 0;
+      expect((await call("staff", "PUT", `/suppliers/${id}/mapping`, mapping)).statusCode).toBe(
+        403,
+      );
+      const res = await call("owner", "PUT", `/suppliers/${id}/mapping`, mapping);
+      expect(res.statusCode).toBe(200);
+      expect(res.json().mapping).toMatchObject({
+        variantMode: "flat",
+        missingPolicy: "zero_stock",
+      });
+      expect(queued).toEqual([
+        { tenantId: users.owner.tenantId, supplierId: id, trigger: "manual" },
+      ]);
+    });
+
+    it.each([
+      [{ ...mapping, fields: { stock: { path: "Stok" } } }, "fields.barcode"],
+      [{ ...mapping, variantMode: "nested" }, "variantPath"],
+      [
+        { ...mapping, fields: { ...mapping.fields, barcode: { path: "B", constant: "x" } } },
+        "fields.barcode",
+      ],
+    ])("geçersiz eşleştirme 400: %j", async (bad, pathPrefix) => {
+      const id = await supplierWithRaw();
+      const res = await call("owner", "PUT", `/suppliers/${id}/mapping`, bad);
+      expect(res.statusCode).toBe(400);
+      expect(res.json().issues.some((i: { path: string }) => i.path.startsWith(pathPrefix))).toBe(
+        true,
+      );
+    });
+
+    it("rapor ve eşleştirme uçları başka mağazaya kapalı", async () => {
+      const id = await supplierWithRaw();
+      expect((await call("other", "GET", `/suppliers/${id}/report`)).statusCode).toBe(404);
+      expect(
+        (await call("other", "POST", `/suppliers/${id}/mapping/preview`, { mapping })).statusCode,
+      ).toBe(404);
+      expect((await call("other", "PUT", `/suppliers/${id}/mapping`, mapping)).statusCode).toBe(
+        404,
+      );
+      const report = await call("owner", "GET", `/suppliers/${id}/report`);
+      expect(report.json()).toMatchObject({ supplierProducts: 2, normalized: 0, variants: 0 });
+    });
   });
 });

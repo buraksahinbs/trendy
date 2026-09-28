@@ -6,3 +6,4 @@ export * from "./shrink.js";
 export { isBlockedAddress, BlockedAddressError } from "./ssrf.js";
 export * from "./fields.js";
 export * from "./detect.js";
+export * from "./mapping.js";

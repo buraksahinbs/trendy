@@ -375,16 +375,16 @@ docs/
 
 **Hedef:** Her tedarikçinin farklı yapısını tek bir kanonik ürün modeline çevirmek.
 
-- [ ] Kanonik alanlar: external_id, product_main_id (model kodu), barcode, stock_code, title, description, brand_name, source_category, cost_price, currency, stock, vat_rate, images[], variant özellikleri (renk, beden vb.), desi, origin.
-- [ ] Eşleştirme ekranı: XML önizlemesinden alan seçip kanonik alana bağlama. Sabit değer atama (ör. "tüm ürünlerde KDV = 20").
-- [ ] Dönüşümler (transform): trim, büyük/küçük harf, bul-değiştir, regex çıkarma, sayı ayrıştırma (Türkçe ondalık virgül dahil), para birimi çevirme (sabit kur veya manuel girilen kur), HTML temizleme.
-- [ ] **Varyant yapısı tespiti.** Tedarikçiler genellikle iki şekilde gönderir; ikisi de desteklenmeli:
+- [x] Kanonik alanlar: external_id, product_main_id (model kodu), barcode, stock_code, title, description, brand_name, source_category, cost_price, currency, stock, vat_rate, images[], variant özellikleri (renk, beden vb.), desi, origin. _(`@trendy/xml-ingest` `mapItem`, `MappingConfig`)_
+- [~] Eşleştirme ekranı: XML önizlemesinden alan seçip kanonik alana bağlama. Sabit değer atama (ör. "tüm ürünlerde KDV = 20"). _(API hazır: `PUT /suppliers/:id/mapping`, kaydetmeden `POST .../mapping/preview`. Panel ekranı bekliyor.)_
+- [~] Dönüşümler (transform): trim, büyük/küçük harf, bul-değiştir, regex çıkarma, sayı ayrıştırma (Türkçe ondalık virgül dahil), para birimi çevirme (sabit kur veya manuel girilen kur), HTML temizleme. _(trim, büyük/küçük harf (Türkçe), bul-değiştir, böl-al, değer eşleme, ön ek, varsayılan, HTML temizleme, TR sayı ayrıştırma hazır. Regex bilinçli olarak yok (ReDoS, DECISIONS). Kur çevirimi fiyat motorunda (`fxRate`); kur girişi senkronla gelecek.)_
+- [x] **Varyant yapısı tespiti.** Tedarikçiler genellikle iki şekilde gönderir; ikisi de desteklenmeli: _(`variantMode: flat | nested`; seçim kullanıcıda, önizleme ile doğrulanır.)_
   - (a) Her varyant ayrı düğümdür, ortak bir model kodu vardır.
   - (b) Tek ürün düğümünün altında varyant listesi bulunur.
 - [x] **Barkod normalizasyonu:** Boşlukları kaldır. Trendyol kuralına göre yalnızca harf, rakam, `.`, `-`, `_` kalsın. Maksimum 40 karakter. Geçersiz olanları raporla.
   - ⚠️ DOĞRULA: Barkod stratejisi (tedarikçinin EAN barkodunu mu kullanmalı, yoksa satıcıya özel ön ekli barkod mu üretmeli) Trendyol katalog eşleşmesi ve aynı barkodu satan başka satıcılar açısından sonuç doğurabilir. Karar vermeden önce Trendyol dokümanını ve destek ekibini kontrol et.
-- [ ] `title` 100 karakter, `description` 30.000 karakter, renk 50 karakter sınırları için kırpma ve uyarı.
-- [ ] Doğrulama raporu: Her ürün için "Trendyol'a gönderilebilir mi?" durumu ve eksik alan listesi.
+- [x] `title` 100 karakter, `description` 30.000 karakter, renk 50 karakter sınırları için kırpma ve uyarı.
+- [x] Doğrulama raporu: Her ürün için "Trendyol'a gönderilebilir mi?" durumu ve eksik alan listesi. _(Ürün bazında `normalize_issues`; `GET /suppliers/:id/report` sorun dağılımı; önizlemede `createMissing`.)_
 
 **Kabul kriterleri:** 3 gerçek feed için eşleştirme yapılabiliyor, kanonik ürünler ve varyantlar doğru gruplanıyor, doğrulama raporu eksikleri doğru gösteriyor.
 

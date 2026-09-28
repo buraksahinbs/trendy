@@ -243,6 +243,36 @@ describe.skipIf(!url)("tedarikçi XML çekimi", () => {
     expect((await run(id, "manual")).inserted).toBe(2);
   });
 
+  it("eşleştirme tanımlıysa çekimin sonunda ürünler kanonik kataloğa uygulanır", async () => {
+    const id = await newSupplier();
+    await withTenant(db, tenantId, (tx) =>
+      tx
+        .update(schema.suppliers)
+        .set({
+          mapping: {
+            version: 1,
+            variantMode: "flat",
+            missingPolicy: "zero_stock",
+            fields: { title: { path: "Ad" }, barcode: { path: "Kod" }, stock: { path: "Stok" } },
+          },
+        })
+        .where(eq(schema.suppliers.id, id)),
+    );
+    reply = {
+      body: feed([
+        { id: "NK-1", stok: 7, ad: "Kalem" },
+        { id: "NK-2", stok: 0 },
+      ]),
+    };
+    const s = await run(id);
+    expect(s.normalize).toMatchObject({ processed: 2, variants: 2, itemsWithErrors: 0 });
+    const vs = await withTenant(db, tenantId, (tx) =>
+      tx.select().from(schema.variants).where(eq(schema.variants.barcode, "NK-1")),
+    );
+    expect(vs[0]).toMatchObject({ stock: 7 });
+    expect((await lastJob(id)).summary).toMatchObject({ normalize: { variants: 2 } });
+  });
+
   it("zamanlayıcı: zamanı gelenleri ekler, duraklatılmış tedarikçi ve tenant'ı atlar", async () => {
     const [tenant2] = await db
       .insert(schema.tenants)

@@ -15,6 +15,7 @@ import {
   type UpsertCounts,
 } from "@trendy/db";
 import type { XmlFetchPayload } from "@trendy/jobs";
+import { normalizeSupplier, type NormalizeSummary } from "./normalize.js";
 import type { Logger, SecretBox } from "@trendy/shared";
 import {
   checkFeedShrink,
@@ -57,6 +58,8 @@ export interface FetchSummary {
   reason?: "config_missing" | "inactive";
   encoding?: string;
   replacementChars?: number;
+  /** Kanonik kataloğa uygulama (Faz 5). */
+  normalize?: NormalizeSummary;
 }
 
 /** Kullanıcıya gösterilecek hata; tekrar deneme değeri yoksa `retryable: false`. */
@@ -131,6 +134,8 @@ export async function runSupplierFetch(
     if (res.status === "not_modified") {
       summary.notModified = true;
       await tx((t) => recordSupplierFetch(t, supplierId, {}));
+      // Feed değişmese de eşleştirme değişmiş olabilir.
+      summary.normalize = await normalizeSupplier(db, tenantId, supplierId);
       await finish("success");
       return summary;
     }
@@ -208,6 +213,7 @@ export async function runSupplierFetch(
         }),
       );
     }
+    summary.normalize = await normalizeSupplier(db, tenantId, supplierId);
     await finish("success");
     log.info({ ...summary }, "feed çekildi");
     return summary;

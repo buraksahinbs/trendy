@@ -148,6 +148,8 @@ export const suppliers = pgTable(
     itemPath: text("item_path"),
     /** Ürün düğümü içindeki tekil kimlik alanı (`getAtPath` yolu), ör. `UrunKodu`, `@id`. */
     externalIdPath: text("external_id_path"),
+    /** Alan eşleştirme (`MappingConfig`, `@trendy/xml-ingest`); API kaydederken doğrular. */
+    mapping: jsonb("mapping"),
     scheduleCron: text("schedule_cron").notNull().default("*/30 * * * *"),
     active: boolean("active").notNull().default(true),
     /** Acil durdurma (Faz 9): yalnızca bu tedarikçi. */
@@ -162,22 +164,6 @@ export const suppliers = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index().on(t.tenantId)],
-);
-
-export const supplierFieldMappings = pgTable(
-  "supplier_field_mappings",
-  {
-    id: id(),
-    tenantId: tenantId(),
-    supplierId: bigint("supplier_id", { mode: "number" })
-      .notNull()
-      .references(() => suppliers.id, { onDelete: "cascade" }),
-    targetField: text("target_field").notNull(),
-    sourcePath: text("source_path"),
-    constantValue: text("constant_value"),
-    transform: jsonb("transform"),
-  },
-  (t) => [uniqueIndex().on(t.supplierId, t.targetField), index().on(t.tenantId)],
 );
 
 export const supplierProducts = pgTable(
@@ -195,6 +181,11 @@ export const supplierProducts = pgTable(
     lastSeenAt: ts("last_seen_at").notNull().defaultNow(),
     /** Feed'de artık yoksa ilk kaybolduğu an (kaybolan ürün politikası, Faz 4). */
     missingSince: ts("missing_since"),
+    /** `{hash}:{eşleştirme özeti}`; ikisi değişmedikçe ürün yeniden normalize edilmez. */
+    normalizedHash: text("normalized_hash"),
+    /** Son normalizasyondaki sorunlar (`MappingIssue[]`): doğrulama raporu. */
+    normalizeIssues: jsonb("normalize_issues"),
+    normalizedAt: ts("normalized_at"),
   },
   (t) => [uniqueIndex().on(t.supplierId, t.externalId), index().on(t.tenantId)],
 );
@@ -217,6 +208,7 @@ export const products = pgTable(
     categoryIdTy: integer("category_id_ty"),
     origin: text("origin"),
     vatRate: smallint("vat_rate"),
+    desi: numeric("desi", { precision: 8, scale: 2, mode: "number" }),
     createdAt: createdAt(),
     updatedAt: ts("updated_at").notNull().defaultNow(),
   },
@@ -412,7 +404,6 @@ export const TENANT_TABLES = [
   "tenant_members",
   "trendyol_credentials",
   "suppliers",
-  "supplier_field_mappings",
   "supplier_products",
   "products",
   "variants",
