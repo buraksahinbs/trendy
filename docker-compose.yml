@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: trendy
+      POSTGRES_PASSWORD: trendy
+      POSTGRES_DB: trendy
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+  redis:
+    image: redis:8
+    ports: ["6379:6379"]
+volumes:
+  pgdata:
