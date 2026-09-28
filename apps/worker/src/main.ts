@@ -17,6 +17,7 @@ import { UnrecoverableError, Worker } from "bullmq";
 import { Redis } from "ioredis";
 import { scheduleDueFetches } from "./scheduler.js";
 import { FetchError, runSupplierFetch } from "./supplier-fetch.js";
+import { runOrderSync } from "./orders.js";
 import { runBatchPoll, runTrendyolImport, runTrendyolSync } from "./trendyol-jobs.js";
 import { scheduleTrendyolJobs } from "./trendyol-scheduler.js";
 
@@ -65,6 +66,13 @@ const trendyolWorker = new Worker<TrendyolPayload>(
       const p = job.data;
       if (p.kind === "poll") return await runBatchPoll(tyDeps);
       if (p.kind === "import") return await runTrendyolImport(tyDeps, p.tenantId);
+      if (p.kind === "orders") return await runOrderSync(tyDeps, p.tenantId);
+      if (p.kind === "orders_backfill") {
+        return await runOrderSync(tyDeps, p.tenantId, {
+          from: new Date(p.from),
+          to: new Date(p.to),
+        });
+      }
       return await runTrendyolSync(tyDeps, p.tenantId);
     } catch (err) {
       // Yetki, doğrulama ve kullanımdan kalkmış endpoint hataları tekrar denemeyle düzelmez.

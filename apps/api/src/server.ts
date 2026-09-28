@@ -17,6 +17,7 @@ const app = await buildApp({
   limiter: new RedisRateLimiter(redis, "api:"),
   queue,
   integratorName: env.TRENDYOL_INTEGRATOR_NAME,
+  ...(env.PUBLIC_BASE_URL ? { publicBaseUrl: env.PUBLIC_BASE_URL.replace(/\/$/, "") } : {}),
   logger,
   sessionTtlMs: env.SESSION_TTL_HOURS * 3_600_000,
   secureCookies: env.NODE_ENV === "production",

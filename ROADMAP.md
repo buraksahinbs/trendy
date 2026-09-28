@@ -470,22 +470,22 @@ docs/
 
 ### Faz 10 — Sipariş çekme
 
-- [ ] `getShipmentPackagesStream` ile polling job'u:
+- [x] `getShipmentPackagesStream` ile polling job'u: _(`ty_orders`: 5 dk'da bir; imleçten 4 saat geriden, ilk çekimde son 14 gün; imleç yalnızca tam başarıda ilerler.)_
   - Her tenant için `sync_cursors.last_synced_until` baz alınır. Güvenlik payı için pencere biraz geriden başlatılır (overlap, ör. 10 dakika).
-  - Pencere ≤14 gün, tarih parametreleri **GMT+3 milisaniye**.
+  - Pencere ≤14 gün, tarih parametreleri **GMT+3 milisaniye**. ⚠️ _Güncel doküman yalnızca "Unix timestamp milisaniye" diyor; GMT+3 ifadesi yok. Unix ms kullanılıyor, olası kaymaya karşı 4 saat örtüşme; ilk canlı okumada teyit edilecek (TRENDYOL_NOTES)._
   - `hasMore`/`nextCursor` ile tüm sayfalar gezilir. Filtre aynı akış içinde değiştirilmez.
   - İstekler arası ≥5 sn. Tenant seviyesine göre dakikalık limite uyulur.
-- [ ] **Upsert anahtarı:** `shipmentPackageId`. Statü değişiklikleri `lastModifiedDate` ile güncellenir. Daha eski bir veri daha yenisinin üzerine yazılmaz.
-- [ ] `createdBy` = split / cancel / transfer ve `originPackageIds` alanları ile paket bölünmesi ve kısmi iptaller doğru modellenir.
-- [ ] **Backfill aracı:** Admin, bir tenant için belirli bir tarih aralığını (≤ son 3 ay) yeniden çekebilir. Trendyol'un kesinti duyurularında kullanılır.
-- [ ] **Webhook (opsiyonel hızlandırıcı):**
+- [x] **Upsert anahtarı:** `shipmentPackageId`. Statü değişiklikleri `lastModifiedDate` ile güncellenir. Daha eski bir veri daha yenisinin üzerine yazılmaz. _(Eşit zaman damgası idempotent günceller; eskisi `stale` sayılır.)_
+- [x] `createdBy` = split / cancel / transfer ve `originPackageIds` alanları ile paket bölünmesi ve kısmi iptaller doğru modellenir.
+- [x] **Backfill aracı:** Admin, bir tenant için belirli bir tarih aralığını (≤ son 3 ay) yeniden çekebilir. Trendyol'un kesinti duyurularında kullanılır. _(`POST /orders/backfill` (owner): aralık 14 günlük pencerelerle taranır, imleç değişmez.)_
+- [~] **Webhook (opsiyonel hızlandırıcı):** _(Alıcı hazır: `POST /hooks/o/:token` + `x-api-key` (sabit zamanlı karşılaştırma), zarf ve tek paket biçimi; `POST /settings/webhook` URL/anahtar üretir. Trendyol'a kayıt (createWebhook) ve pasif durum göstergesi henüz yok: dışarıdan erişilen adres (`PUBLIC_BASE_URL`) gerekiyor.)_
   - Tenant başına benzersiz, tahmin edilemez URL (URL'de "trendyol" kelimesi geçmemeli).
   - `x-api-key` doğrulaması (tenant başına ayrı anahtar).
   - Gelen veri polling ile aynı upsert fonksiyonundan geçer (idempotent).
   - Trendyol'un webhook'u pasife alma ihtimaline karşı panelde durum göstergesi ve "yeniden aktifleştir" aksiyonu.
   - Satıcı başına 15 webhook sınırı nedeniyle mevcut webhook'lar listelenir, kopya oluşturulmaz.
 - [ ] Sipariş geldiğinde stok etkisi: Dropshipping senaryosunda asıl kaynak tedarikçi stoğudur. Yine de bir sonraki XML çekimine kadar yerel stok düşürülerek Trendyol'a güncelleme gönderilebilir (opsiyonel, tenant ayarı).
-- [ ] Kişisel veri: Sipariş ham verisinde kişisel bilgiler bulunur. Saklama süresi politikası uygulanır; panelde yalnızca yetkili roller görür.
+- [~] Kişisel veri: Sipariş ham verisinde kişisel bilgiler bulunur. Saklama süresi politikası uygulanır; panelde yalnızca yetkili roller görür. _(T.C. kimlik no hiç saklanmaz; liste uçları kişisel veri döndürmez, adres yalnızca owner'a. Saklama süresi/silme job'u henüz yok.)_
 
 **Kabul kriterleri:** Stage'de test siparişi oluşturulup (Test Siparişi Oluşturma servisi) sistemde görünüyor, statü güncellemeleri yansıyor, aynı sipariş iki kez kaydedilmiyor.
 

@@ -46,6 +46,8 @@ export interface TrendyolDeps {
   /** Yalnızca testler için: mock Trendyol adresi vb. */
   clientOptions?: Partial<Pick<TrendyolClientConfig, "baseUrl" | "sleep" | "random">>;
   now?: () => Date;
+  /** Yalnızca testler için: sipariş akışındaki istekler arası bekleme. */
+  sleep?: (ms: number) => Promise<void>;
 }
 
 export class TrendyolNotReadyError extends Error {
@@ -91,7 +93,7 @@ export async function tenantClient(deps: TrendyolDeps, tenantId: number, log: Lo
 }
 
 /** Başlangıç/bitiş ve hatayı iş loguna yazan sarmalayıcı. */
-async function withJobLog<T extends Record<string, unknown>>(
+export async function withJobLog<T extends Record<string, unknown>>(
   deps: TrendyolDeps,
   tenantId: number,
   jobType: string,

@@ -14,10 +14,16 @@ export interface XmlFetchPayload {
 
 /**
  * Trendyol işleri: `sync` stok/fiyat senkronu, `import` Trendyol'daki ürünleri ve durumlarını
- * okuma, `poll` gönderilen batch'lerin sonuçlarını işleme (tüm tenant'lar).
+ * okuma, `poll` gönderilen batch'lerin sonuçlarını işleme (tüm tenant'lar), `orders` sipariş
+ * paketlerini çekme, `orders_backfill` belirli aralığı yeniden tarama.
  */
 export type TrendyolPayload =
-  { kind: "sync"; tenantId: number } | { kind: "import"; tenantId: number } | { kind: "poll" };
+  | { kind: "sync"; tenantId: number }
+  | { kind: "import"; tenantId: number }
+  | { kind: "poll" }
+  | { kind: "orders"; tenantId: number }
+  /** Backfill: aralık ISO tarih; imleç değişmez. */
+  | { kind: "orders_backfill"; tenantId: number; from: string; to: string };
 
 /** Aynı tedarikçi için aynı anda tek çekim: bekleyen/çalışan iş varsa yenisi eklenmez. */
 export const xmlFetchJobId = (supplierId: number) => `supplier-${supplierId}`;

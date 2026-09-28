@@ -63,4 +63,18 @@ describe("loadEnv", () => {
   it.each(["abc", "0:x", `1:${"a".repeat(8)}`])("hatalı eski anahtar reddedilir: %j", (v) => {
     expect(() => loadEnv({ ...valid, SECRETS_ENCRYPTION_PREVIOUS_KEYS: v })).toThrow(EnvError);
   });
+
+  it("PUBLIC_BASE_URL: boş değer tanımsız sayılır; http ve yasaklı kelimeler reddedilir", () => {
+    expect(loadEnv({ ...valid, PUBLIC_BASE_URL: "" }).PUBLIC_BASE_URL).toBeUndefined();
+    expect(loadEnv({ ...valid, PUBLIC_BASE_URL: "https://api.ornek.com" }).PUBLIC_BASE_URL).toBe(
+      "https://api.ornek.com",
+    );
+    for (const bad of [
+      "http://api.ornek.com",
+      "https://trendyol-entegrasyon.com",
+      "https://localhost:3000",
+    ]) {
+      expect(() => loadEnv({ ...valid, PUBLIC_BASE_URL: bad })).toThrow(EnvError);
+    }
+  });
 });

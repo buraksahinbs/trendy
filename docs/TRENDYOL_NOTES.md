@@ -57,3 +57,11 @@ Kopyalar: `docs/trendyol-api/ref-*.md` (OpenAPI), `doc-*.md` (kılavuz), `change
 - ✅ #6 kapandı: `updateUnapprovedProducts` şemasında `quantity`/`salePrice`/`listPrice` alanı yok. Onaysız ürünlerin stok/fiyatı API'den güncellenemez; senkron onları atlar, onaylandıklarında (günlük içe aktarma durumu günceller) gönderim başlar.
 - İlk içe aktarmada `last_sent_*` değerleri Trendyol'daki mevcut stok/fiyatla başlatılır: Trendyol'da zaten doğru olan değer tekrar gönderilmez.
 - Stok/fiyat batch sonucu öğe bazlı okunur (`isBatchComplete`); başarısız öğelerin `last_sent_*` değerleri sıfırlanır ve bir sonraki turda yeniden gönderilir. 4 saat içinde sonuç alınamazsa aynı şekilde yeniden gönderilir.
+
+## 2026-09-28 — Sipariş paketleri (Faz 10)
+
+- **OpenAPI referansındaki sipariş şeması eskimiş:** `reference/getshipmentpackagesstream` hâlâ `id`, `merchantSku`, `price`, `amount` gibi eski adları gösteriyor. Kılavuz sayfası örneği ve 02.04.2026 changelog'u yeni adları (`shipmentPackageId`, `lines[].lineId`, `stockCode`, `lineUnitPrice`, `lineGrossAmount`, `packageTotalPrice`, `commission`, `vatRate`) kullanıyor. **Kod kılavuz + changelog'u esas alır.**
+- Stream kuralları (kılavuz): ilk istekte `nextCursor` yok; `hasMore` ile devam; aynı cursor ile filtre değiştirilirse 400; sıralama `lastModifiedDate` DESC; son 3 ay; tek sorguda ≤ 14 gün; `size` ≤ 200; istekler arası ≥ 5 sn.
+- ⚠️ **Tarih zaman dilimi:** Güncel doküman parametreleri yalnızca "Unix timestamp milisaniye" olarak tanımlıyor; roadmap'teki "GMT+3" ifadesi güncel dokümanda yok. Unix ms (UTC) kullanılıyor ve her pencere 4 saat geriden başlıyor. İlk canlı okumada yeni bir siparişin `lastModifiedDate` değeri gerçek saatle karşılaştırılıp teyit edilmeli.
+- Webhook modeli örneği `{ totalElements, content: [...] }` zarfını gösteriyor, açıklama ise "tam sipariş verisi" diyor; alıcı iki biçimi de kabul ediyor. Başarısız istekler 5 dk'da bir tekrarlanır, hata sürerse webhook pasife alınır. URL'de "Trendyol", "Dolap", "Localhost" geçemez; satıcı başına en fazla 15 webhook.
+- `cargoTrackingNumber` örnekte sayı olarak geliyor (7280027504111111, 2^53'e yakın); metin olarak saklanıyor.

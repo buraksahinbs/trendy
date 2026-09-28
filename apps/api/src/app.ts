@@ -7,6 +7,7 @@ import type { RateLimiter, TrendyolClientConfig } from "@trendy/trendyol-client"
 import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
 import { ZodError } from "zod";
 import { authRoutes } from "./routes/auth.js";
+import { orderRoutes, orderWebhookReceiver, orderWebhookSettingsRoutes } from "./routes/orders.js";
 import { settingsRoutes } from "./routes/settings.js";
 import { jobRoutes, supplierRoutes } from "./routes/suppliers.js";
 import { trendyolRoutes } from "./routes/trendyol.js";
@@ -19,6 +20,8 @@ export interface AppDeps {
   queue: JobQueue;
   /** Trendyol User-Agent'taki entegratör adı (`TRENDYOL_INTEGRATOR_NAME`). */
   integratorName: string;
+  /** Dışarıdan erişilen API adresi (webhook URL'si için), ör. `https://api.ornek.com`. */
+  publicBaseUrl?: string;
   /** Yalnızca testler için: mock Trendyol adresi vb. */
   trendyolClientOptions?: Partial<Pick<TrendyolClientConfig, "baseUrl" | "sleep" | "random">>;
   /** Yalnızca testler için: feed analizinde yerel adreslere izin. */
@@ -106,6 +109,9 @@ export async function buildApp(deps: AppDeps) {
   await app.register(supplierRoutes, { prefix: "/suppliers" });
   await app.register(jobRoutes, { prefix: "/jobs" });
   await app.register(settingsRoutes, { prefix: "/settings" });
+  await app.register(orderRoutes, { prefix: "/orders" });
+  await app.register(orderWebhookSettingsRoutes, { prefix: "/settings/webhook" });
+  await app.register(orderWebhookReceiver, { prefix: "/hooks" });
   return app;
 }
 

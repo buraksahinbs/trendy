@@ -49,6 +49,18 @@ export const envSchema = z.object({
   API_HOST: z.string().default("127.0.0.1"),
   API_PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   SESSION_TTL_HOURS: z.coerce.number().int().min(1).max(720).default(168),
+  /** Dışarıdan erişilen API adresi (sipariş webhook URL'si). "trendyol"/"dolap"/"localhost" içermemeli. */
+  // .env dosyasında boş bırakılırsa tanımsız sayılır.
+  PUBLIC_BASE_URL: z.preprocess(
+    (v) => (v === "" ? undefined : v),
+    z
+      .url({ protocol: /^https$/, message: "https adresi olmalı" })
+      .refine(
+        (u) => !/trendyol|dolap|localhost/i.test(u),
+        "Adres trendyol, dolap veya localhost içeremez",
+      )
+      .optional(),
+  ),
 });
 
 export type Env = z.infer<typeof envSchema>;

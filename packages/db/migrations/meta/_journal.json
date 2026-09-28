@@ -43,6 +43,20 @@
       "when": 1790608011929,
       "tag": "0005_sync",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790610750981,
+      "tag": "0006_orders",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790610751959,
+      "tag": "0007_order_webhooks_rls",
+      "breakpoints": true
     }
   ]
 }

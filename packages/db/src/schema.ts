@@ -371,6 +371,17 @@ export const orders = pgTable(
     orderNumber: text("order_number").notNull(),
     status: text("status").notNull(),
     packageTotalPrice: integer("package_total_price"),
+    currency: char("currency", { length: 3 }),
+    orderDate: ts("order_date"),
+    /** 1 = standart (CORE), 25 = Trendyol Luxe. */
+    channelId: smallint("channel_id"),
+    paymentMethod: text("payment_method"),
+    cargoTrackingNumber: text("cargo_tracking_number"),
+    cargoProviderName: text("cargo_provider_name"),
+    /** order-creation / split / cancel / transfer */
+    createdBy: text("created_by"),
+    originPackageIds: jsonb("origin_package_ids"),
+    customerName: text("customer_name"),
     lastModifiedAt: ts("last_modified_at").notNull(),
     /** Kişisel veri içerir (Faz 10): saklama süresi politikası uygulanacak. */
     raw: jsonb("raw").notNull(),
@@ -398,6 +409,9 @@ export const orderLines = pgTable(
     lineUnitPrice: integer("line_unit_price"),
     commissionRate: numeric("commission_rate", { precision: 6, scale: 2, mode: "number" }),
     vatRate: smallint("vat_rate"),
+    productName: text("product_name"),
+    /** Satır statüsü (`orderLineItemStatusName`). */
+    lineStatus: text("line_status"),
   },
   (t) => [uniqueIndex().on(t.orderId, t.lineId), index().on(t.tenantId, t.barcode)],
 );
@@ -427,6 +441,20 @@ export const jobLogs = pgTable(
   (t) => [index().on(t.tenantId, t.startedAt)],
 );
 
+/**
+ * Sipariş webhook'u (Faz 10): tenant başına tahmin edilemez URL token'ı ve `x-api-key`.
+ * Gelen istekte token sistem bağlantısıyla aranır (tenant henüz bilinmez); anahtar şifreli.
+ */
+export const orderWebhooks = pgTable("order_webhooks", {
+  tenantId: tenantId().primaryKey(),
+  token: text("token").notNull().unique(),
+  apiKeyEnc: text("api_key_enc").notNull(),
+  /** Trendyol'da kayıtlı webhook kimliği (kayıt yapıldıysa). */
+  trendyolWebhookId: text("trendyol_webhook_id"),
+  createdAt: createdAt(),
+  lastReceivedAt: ts("last_received_at"),
+});
+
 /** RLS ile korunan tablolar. Yeni tenant tablosu eklenince buraya ve RLS migration'ına eklenmeli. */
 export const TENANT_TABLES = [
   "tenant_members",
@@ -443,4 +471,5 @@ export const TENANT_TABLES = [
   "order_lines",
   "sync_cursors",
   "job_logs",
+  "order_webhooks",
 ] as const;

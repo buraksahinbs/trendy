@@ -82,7 +82,7 @@ export async function listSyncCandidates(tx: TenantTx, afterVariantId: number, l
       tyPrice: channelListings.tyPrice,
       approvedPrice: sql<number | null>`(
         SELECT pr.new_price FROM ${priceReviews} pr
-        WHERE pr.variant_id = ${variants.id} AND pr.status = 'approved'
+        WHERE pr.variant_id = "variants"."id" AND pr.status = 'approved'
         ORDER BY pr.decided_at DESC NULLS LAST LIMIT 1
       )`,
     })
@@ -442,10 +442,12 @@ export async function listSyncableTenants(db: Db) {
     sync_paused: boolean;
     last_sync_at: string | Date | null;
     last_import_at: string | Date | null;
+    last_orders_at: string | Date | null;
   }>(sql`
     SELECT t.id AS tenant_id, t.sync_paused,
       (SELECT max(started_at) FROM job_logs j WHERE j.tenant_id = t.id AND j.job_type = 'ty_sync') AS last_sync_at,
-      (SELECT max(started_at) FROM job_logs j WHERE j.tenant_id = t.id AND j.job_type = 'ty_import') AS last_import_at
+      (SELECT max(started_at) FROM job_logs j WHERE j.tenant_id = t.id AND j.job_type = 'ty_import') AS last_import_at,
+      (SELECT max(started_at) FROM job_logs j WHERE j.tenant_id = t.id AND j.job_type = 'ty_orders') AS last_orders_at
     FROM tenants t
     JOIN trendyol_credentials c ON c.tenant_id = t.id AND c.env = t.sync_env AND c.verified_at IS NOT NULL
   `);
@@ -455,6 +457,7 @@ export async function listSyncableTenants(db: Db) {
     syncPaused: r.sync_paused,
     lastSyncAt: toDate(r.last_sync_at),
     lastImportAt: toDate(r.last_import_at),
+    lastOrdersAt: toDate(r.last_orders_at),
   }));
 }
 

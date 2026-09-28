@@ -142,3 +142,16 @@
 - Zamanlama: içe aktarma günlük ve API bilgileri doğrulanınca; senkron 15 dk'da bir ve feed değişince hemen; batch takibi bekleyen batch varsa dakikada bir. İlk içe aktarma yapılmadan senkron yapılmaz.
 
 **Gerekçe:** Yanlış stok/fiyat doğrudan para kaybı ve ürün kilidi demektir; her kural tek bir saf fonksiyonda test edilebilir hâlde tutulur.
+
+## 2026-09-28 — Siparişler
+
+**Karar:** Sipariş çekme `ty_orders` job'u (5 dk'da bir, `getShipmentPackagesStream`), webhook alıcısı ve backfill aynı `upsertOrder` fonksiyonunu kullanır. Anahtar `shipmentPackageId`; daha eski `lastModifiedDate` daha yenisinin üzerine yazmaz.
+**Ayrıntılar:**
+
+- İmleç (`sync_cursors.orders`) yalnızca tüm pencereler hatasız bitince ilerler; her tur 4 saat örtüşmeyle başlar (tekrar gelen paket idempotent).
+- Sipariş çekme salt-okumadır; stok/fiyat acil durdurmasından etkilenmez.
+- **KVKK:** T.C. kimlik no (`identityNumber`, `customerTckn`) hiç saklanmaz (dropshipping için gerekmez). Liste uçları kişisel veri döndürmez; teslimat/fatura adresi yalnızca owner'a gösterilir. Saklama süresi politikası ayrıca uygulanacak.
+- Webhook: tenant başına 24 baytlık rastgele URL token'ı + 32 baytlık `x-api-key` (şifreli saklanır, yalnızca oluşturulurken bir kez gösterilir, sabit zamanlı karşılaştırılır). Yol `/hooks/o/:token` ("trendyol" kelimesi geçmez). Webhook yalnızca hızlandırıcıdır; asıl güvence polling'dir.
+- Sipariş sonrası yerel stok düşürme (opsiyonel) henüz yok: dropshipping'de kaynak tedarikçi stoğudur, bir sonraki feed çekimi günceller.
+
+**Not:** Tek tablolu drizzle sorgularında alt sorgudan dış sütuna başvururken sütun açıkça nitelenir (`"orders"."id"`); drizzle niteleme yapmadığında iç tablonun sütununa bağlanıp yanlış sonuç veriyordu (testle yakalandı).

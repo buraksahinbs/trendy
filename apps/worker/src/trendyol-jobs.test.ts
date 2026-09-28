@@ -3,6 +3,7 @@ import type { AddressInfo } from "node:net";
 import { randomBytes } from "node:crypto";
 import {
   createSupplier,
+  decidePriceReview,
   listJobLogs,
   markTrendyolCredentialsVerified,
   saveTrendyolCredentials,
@@ -416,6 +417,21 @@ describe.skipIf(!url)("Trendyol içe aktarma, senkron ve batch takibi", () => {
       expect(ty.sent.flatMap((s) => s.items).find((i) => i.barcode === "PRICE-1")).toBeUndefined();
       const [review] = await run((t) => t.select().from(schema.priceReviews));
       expect(review).toMatchObject({ status: "pending", oldPrice: 15000, newPrice: 45000 });
+
+      // Satıcı onaylar → bir sonraki senkronda onaylanan fiyat gönderilir (veritabanı sorgusuyla).
+      const [user] = await db
+        .insert(schema.users)
+        .values({ email: "onaylayan@example.com", passwordHash: "x" })
+        .returning({ id: schema.users.id });
+      await run((t) => decidePriceReview(t, review!.id, "approved", user!.id));
+      ty.sent = [];
+      const afterApproval = await runTrendyolSync(deps, tenantId);
+      expect(afterApproval.reviews).toBe(0);
+      expect(ty.sent.flatMap((s) => s.items)).toContainEqual({
+        barcode: "PRICE-1",
+        salePrice: 450,
+        listPrice: 540,
+      });
       await run((t) => t.delete(schema.pricingRules));
     });
 
@@ -447,7 +463,8 @@ describe.skipIf(!url)("Trendyol içe aktarma, senkron ve batch takibi", () => {
       const at = (ms: number) => new Date(Date.now() + ms);
 
       await scheduleTrendyolJobs({ db, queue }, at(60_000));
-      expect(added.filter((a) => a.kind !== "poll")).toEqual([]);
+      // Sipariş çekme 5 dk'da bir ve bu tenant'ta hiç çalışmadı: yalnızca o eklenir.
+      expect(added.filter((a) => a.kind !== "poll")).toEqual([{ kind: "orders", tenantId }]);
 
       added.length = 0;
       await scheduleTrendyolJobs({ db, queue }, at(20 * 60_000));
