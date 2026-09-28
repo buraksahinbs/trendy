@@ -8,7 +8,8 @@
     "start": "tsx src/server.ts",
     "e2e": "tsx e2e/run.ts",
     "demo:servers": "tsx e2e/demo.ts servers",
-    "demo:seed": "tsx e2e/demo.ts seed"
+    "demo:seed": "tsx e2e/demo.ts seed",
+    "smoke:trendyol": "tsx e2e/smoke-trendyol.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.2",
