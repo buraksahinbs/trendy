@@ -76,7 +76,12 @@ export function AppSidebar() {
 
   const renderItem = (item: NavItem) => (
     <SidebarMenuItem key={item.href}>
-      <SidebarMenuButton asChild isActive={isActive(pathname, item.href)} tooltip={item.title}>
+      <SidebarMenuButton
+        asChild
+        isActive={isActive(pathname, item.href)}
+        tooltip={item.title}
+        className="data-[active=true]:[&>svg]:text-brand"
+      >
         <Link href={item.href} onClick={close}>
           <item.icon />
           <span>{item.title}</span>

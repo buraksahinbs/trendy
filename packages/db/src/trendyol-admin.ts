@@ -94,6 +94,9 @@ export async function listListings(tx: TenantTx, f: ListingFilter) {
         variantId: variants.id,
         barcode: variants.barcode,
         stockCode: variants.stockCode,
+        attributes: variants.attributes,
+        /** Listede gösterilen ilk görsel (tedarikçi URL'si). */
+        imageUrl: sql<string | null>`${variants.images}->>0`,
         managed: variants.managed,
         stock: variants.stock,
         costPrice: variants.costPrice,

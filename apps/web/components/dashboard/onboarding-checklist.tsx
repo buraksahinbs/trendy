@@ -3,12 +3,10 @@
 import {
   ArrowRight,
   Check,
-  Download,
   KeyRound,
   ListChecks,
   RefreshCcw,
   Truck,
-  Workflow,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -50,45 +48,44 @@ export function OnboardingChecklist({ state }: { state: ChecklistState }) {
   const supplierHref = state.mappingSupplierId
     ? `/tedarikciler/${state.mappingSupplierId}`
     : "/tedarikciler";
+  // Tedarikçi var ama alanları onaylanmamışsa (eski akışla eklenmiş) ikinci adım eşleştirmeye götürür.
+  const supplierStep: Step =
+    state.supplier && !state.mapping
+      ? {
+          done: false,
+          icon: Truck,
+          title: "Tedarikçi alanlarını onaylayın",
+          description: "Barkod ve stok alanının feed'de nerede olduğunu seçin.",
+          href: `${supplierHref}?sekme=eslestirme`,
+          cta: "Alanları seç",
+        }
+      : {
+          done: state.supplier && state.mapping,
+          icon: Truck,
+          title: "Tedarikçi XML'ini ekleyin",
+          description:
+            "Adresi yapıştırın; yapı ve alanlar otomatik bulunur, siz yalnızca kontrol edin.",
+          href: "/tedarikciler?ekle=1",
+          cta: "Tedarikçi ekle",
+        };
   const steps: Step[] = [
     {
       done: state.credentials === "verified",
       icon: KeyRound,
-      title: "Trendyol bilgilerini girin ve doğrulayın",
-      description: "Satıcı ID, API Key ve Secret ile mağazanızı bağlayıp bağlantıyı test edin.",
+      title: "Trendyol mağazanızı bağlayın",
+      description:
+        "Satıcı ID, API Key ve Secret: Trendyol satıcı paneli › Hesap Bilgilerim › Entegrasyon Bilgileri.",
       href: "/ayarlar?sekme=trendyol",
-      cta: state.credentials === "saved" ? "Bağlantıyı test et" : "Bilgileri gir",
+      cta: state.credentials === "saved" ? "Bağlantıyı test et" : "Bağla",
       ...(state.credentials === "saved" ? { note: "Kaydedildi, doğrulanmadı" } : {}),
     },
+    supplierStep,
     {
-      done: state.supplier,
-      icon: Truck,
-      title: "Tedarikçi ekleyin",
-      description: "XML feed adresini girin; ürün düğümünü ve kimlik alanını birlikte bulalım.",
-      href: "/tedarikciler",
-      cta: "Tedarikçi ekle",
-    },
-    {
-      done: state.mapping,
-      icon: Workflow,
-      title: "Alanları eşleştirin",
-      description: "Barkod, stok ve maliyet gibi alanların feed'de nerede olduğunu gösterin.",
-      href: `${supplierHref}?sekme=eslestirme`,
-      cta: "Eşleştir",
-    },
-    {
-      done: state.firstFetch,
-      icon: Download,
-      title: "İlk çekimi yapın",
-      description: "Feed'i çekip ürünlerin doğru okunduğunu ve sorunsuz eşleştiğini kontrol edin.",
-      href: supplierHref,
-      cta: "Tedarikçiye git",
-    },
-    {
-      done: state.firstSync,
+      done: state.firstFetch && state.firstSync,
       icon: RefreshCcw,
-      title: "İlk senkronu tamamlayın",
-      description: "Stoklar barkodla Trendyol ürünlerinize eşlenir ve gönderilir.",
+      title: "İlk senkronu kontrol edin",
+      description:
+        "Ürünler barkodla Trendyol'daki ürünlerinize eşlenir ve stoklar otomatik gönderilir. Sonucu Ürünler'de görün.",
       href: "/urunler",
       cta: "Ürünlere git",
     },
@@ -104,7 +101,7 @@ export function OnboardingChecklist({ state }: { state: ChecklistState }) {
           <ListChecks className="text-brand size-4" />
           Kurulum
         </CardTitle>
-        <CardDescription>Mağazanızı otomatik senkrona hazırlamak için birkaç adım.</CardDescription>
+        <CardDescription>Üç adımda stoklarınız tedarikçinizle otomatik eşitlenir.</CardDescription>
         <CardAction className="text-muted-foreground text-sm tabular-nums">
           {doneCount}/{steps.length}
         </CardAction>

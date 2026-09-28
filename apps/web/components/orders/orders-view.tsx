@@ -258,6 +258,8 @@ function OrdersTable({
   dimmed: boolean;
   onOpen: (id: number) => void;
 }) {
+  // Kargo bilgisi hiçbir satırda yoksa (ör. yeni siparişler) boş sütun gösterilmez.
+  const hasCargo = items.some((o) => o.cargoProviderName || o.cargoTrackingNumber);
   return (
     <div
       className={cn(
@@ -274,7 +276,7 @@ function OrdersTable({
             <TableHead className="hidden sm:table-cell">Ürün</TableHead>
             <TableHead className="text-right">Tutar</TableHead>
             <TableHead>Statü</TableHead>
-            <TableHead className="hidden xl:table-cell">Kargo</TableHead>
+            {hasCargo && <TableHead className="hidden xl:table-cell">Kargo</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -310,8 +312,14 @@ function OrdersTable({
               <TableCell className="hidden max-w-[12rem] truncate lg:table-cell">
                 {o.customerName ?? <span className="text-muted-foreground">—</span>}
               </TableCell>
-              <TableCell className="text-muted-foreground hidden sm:table-cell">
-                {formatNumber(o.lineCount)} satır · {formatNumber(o.itemCount)} adet
+              <TableCell className="hidden max-w-[16rem] sm:table-cell">
+                <div className="truncate text-sm" title={o.firstProductName ?? undefined}>
+                  {o.firstProductName ?? <span className="text-muted-foreground">—</span>}
+                </div>
+                <div className="text-muted-foreground text-xs">
+                  {o.lineCount > 1 && `+${formatNumber(o.lineCount - 1)} ürün daha · `}
+                  {formatNumber(o.itemCount)} adet
+                </div>
               </TableCell>
               <TableCell className="text-right font-medium whitespace-nowrap tabular-nums">
                 {formatMoney(o.packageTotalPrice, o.currency ?? "TRY")}
@@ -319,14 +327,16 @@ function OrdersTable({
               <TableCell>
                 <OrderStatusBadge status={o.status} />
               </TableCell>
-              <TableCell className="hidden xl:table-cell">
-                <div className="text-sm">{o.cargoProviderName ?? "—"}</div>
-                {o.cargoTrackingNumber && (
-                  <div className="text-muted-foreground font-mono text-xs">
-                    {o.cargoTrackingNumber}
-                  </div>
-                )}
-              </TableCell>
+              {hasCargo && (
+                <TableCell className="hidden xl:table-cell">
+                  <div className="text-sm">{o.cargoProviderName ?? "—"}</div>
+                  {o.cargoTrackingNumber && (
+                    <div className="text-muted-foreground font-mono text-xs">
+                      {o.cargoTrackingNumber}
+                    </div>
+                  )}
+                </TableCell>
+              )}
             </TableRow>
           ))}
         </TableBody>

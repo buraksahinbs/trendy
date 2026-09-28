@@ -3,6 +3,7 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   Braces,
+  ChevronDown,
   Download,
   Info,
   Loader2,
@@ -31,6 +32,7 @@ import {
   guessDraft,
   suggestPaths,
   suggestVariantPaths,
+  SYNC_FIELD_KEYS,
   type FieldDef,
   type FieldDraft,
   type MappingDraft,
@@ -298,11 +300,32 @@ function MappingForm({
             </Section>
 
             <Section
-              title="Alanlar"
-              description="Her alanın feed'de nereden okunacağını seçin ya da sabit bir değer girin."
+              title="Stok ve fiyat senkronu"
+              description="Trendyol'daki ürünlerinizle eşleşme ve gönderim için gereken alanlar."
             >
               <div className="divide-y">
-                {FIELD_DEFS.map((def) => (
+                {FIELD_DEFS.filter((d) => SYNC_FIELD_KEYS.has(d.key)).map((def) => (
+                  <FieldRow
+                    key={def.key}
+                    def={def}
+                    value={draft.fields[def.key]}
+                    onChange={(f) => setField(def.key, f)}
+                    suggestions={def.scope === "variant" ? variantPaths : productPaths}
+                    node={def.scope === "variant" && variantNode ? variantNode : sample}
+                    parent={def.scope === "variant" && variantNode ? sample : undefined}
+                    disabled={disabled}
+                  />
+                ))}
+              </div>
+            </Section>
+
+            <Section
+              title="Ürün yükleme için"
+              description="Trendyol'da yeni ürün açarken kullanılır; stok/fiyat senkronu için gerekmez. Çoğu otomatik eşlendi."
+              collapsible
+            >
+              <div className="divide-y">
+                {FIELD_DEFS.filter((d) => !SYNC_FIELD_KEYS.has(d.key)).map((def) => (
                   <FieldRow
                     key={def.key}
                     def={def}
@@ -319,7 +342,8 @@ function MappingForm({
 
             <Section
               title="Görseller ve özellikler"
-              description="İsteğe bağlı. Yeni ürün açarken kullanılır; stok/fiyat senkronu için gerekmez."
+              description="Renk ve beden gibi özellikler ürün listesinde varyantları ayırt eder. Görseller yeni ürün açarken kullanılır."
+              collapsible
             >
               <div className="space-y-5 py-3">
                 <div className="space-y-2">
@@ -454,18 +478,49 @@ function Section({
   title,
   description,
   children,
+  collapsible = false,
 }: {
   title: string;
   description: string;
   children: React.ReactNode;
+  /** Katlı başlar; ikincil alanları gizleyip formu kısaltır. */
+  collapsible?: boolean;
 }) {
-  return (
-    <section className="bg-card rounded-xl border">
-      <div className="border-b px-4 py-3">
+  const [open, setOpen] = useState(!collapsible);
+  const header = (
+    <>
+      <div className="min-w-0 flex-1">
         <h3 className="text-sm font-semibold">{title}</h3>
         <p className="text-muted-foreground text-xs">{description}</p>
       </div>
-      <div className="px-4">{children}</div>
+      {collapsible && (
+        <ChevronDown
+          className={cn(
+            "text-muted-foreground size-4 shrink-0 transition-transform",
+            open && "rotate-180",
+          )}
+        />
+      )}
+    </>
+  );
+  return (
+    <section className="bg-card rounded-xl border">
+      {collapsible ? (
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          className={cn(
+            "hover:bg-muted/40 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left transition-colors",
+            open && "rounded-b-none border-b",
+          )}
+        >
+          {header}
+        </button>
+      ) : (
+        <div className="flex items-center gap-3 border-b px-4 py-3">{header}</div>
+      )}
+      {open && <div className="px-4">{children}</div>}
     </section>
   );
 }

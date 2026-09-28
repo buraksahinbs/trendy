@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 import { JsonViewer } from "@/components/json-viewer";
+import { SupplierQuickAdd } from "@/components/suppliers/supplier-quick-add";
 import { PasswordInput } from "@/components/password-input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -139,16 +140,19 @@ export function SupplierFormSheet({
           <SheetDescription>
             {supplier
               ? "Feed ayarlarını güncelleyin. Değişiklikler bir sonraki çekimde geçerli olur."
-              : "Tedarikçinizin XML feed adresini girin; ürün düğümünü ve kimlik alanını birlikte bulalım."}
+              : "XML adresini yapıştırın; yapıyı ve alanları biz bulalım, siz yalnızca kontrol edin."}
           </SheetDescription>
         </SheetHeader>
-        {open && (
-          <SupplierForm
-            key={supplier?.id ?? "new"}
-            supplier={supplier}
-            onDone={() => onOpenChange(false)}
-          />
-        )}
+        {open &&
+          (supplier ? (
+            <SupplierForm
+              key={supplier.id}
+              supplier={supplier}
+              onDone={() => onOpenChange(false)}
+            />
+          ) : (
+            <SupplierQuickAdd onDone={() => onOpenChange(false)} />
+          ))}
       </SheetContent>
     </Sheet>
   );
@@ -593,7 +597,7 @@ function AuthFields({ control }: { control: Control<Values> }) {
   );
 }
 
-function DetectPanel({
+export function DetectPanel({
   result,
   itemPath,
   externalIdPath,

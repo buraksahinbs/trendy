@@ -2,6 +2,7 @@
 
 import { Plus, Truck } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 import { EmptyState } from "@/components/empty-state";
@@ -49,7 +50,9 @@ export function latestJobBySupplier(jobs: Job[] | undefined) {
 export function SuppliersView() {
   const suppliers = useSuppliers();
   const jobs = useJobs();
-  const [createOpen, setCreateOpen] = useState(false);
+  // Kurulum listesinden "?ekle=1" ile gelinirse ekleme penceresi açık başlar.
+  const params = useSearchParams();
+  const [createOpen, setCreateOpen] = useState(() => params.get("ekle") === "1");
   const latest = latestJobBySupplier(jobs.data);
 
   const addButton = (

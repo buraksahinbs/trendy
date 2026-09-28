@@ -63,6 +63,9 @@ export interface Listing {
   variantId: number;
   barcode: string;
   stockCode: string | null;
+  /** Varyant özellikleri, ör. { Renk: "Beyaz", Beden: "S" } */
+  attributes: Record<string, string>;
+  imageUrl: string | null;
   managed: boolean;
   stock: number;
   /** Tedarikçi para biriminde kuruş */
@@ -363,6 +366,7 @@ export interface Order {
   customerName: string | null;
   lineCount: number;
   itemCount: number;
+  firstProductName: string | null;
 }
 
 export interface OrderLine {

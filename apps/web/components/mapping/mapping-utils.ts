@@ -71,6 +71,15 @@ export const FIELD_DEFS: FieldDef[] = [
   },
 ];
 
+/** Stok/fiyat senkronu için gereken alanlar; geri kalanı yalnızca yeni ürün açarken kullanılır. */
+export const SYNC_FIELD_KEYS = new Set<MappingFieldKey>([
+  "barcode",
+  "stock",
+  "costPrice",
+  "currency",
+  "stockCode",
+]);
+
 // ── Taslak (form durumu) ────────────────────────────────────────────────────
 
 export interface FieldDraft {
@@ -396,15 +405,30 @@ export function guessDraft(sample: Raw): MappingDraft {
   const image = suggestPaths(sample).find((s) =>
     /resim|image|gorsel|görsel|foto|picture/i.test(s.path),
   );
+  // Varyantı ayırt eden özellikler (renk, beden): listede aynı adlı satırları ayırır.
+  const attributes: MappingDraft["attributes"] = [];
+  for (const [name, re] of ATTRIBUTE_GUESS) {
+    const pool = nested ? variantLeafs : top;
+    const hit = pool.find((l) => !used.has(l.path) && re.test(l.path.replace(/^@/, "")));
+    if (hit) {
+      used.add(hit.path);
+      attributes.push({ name, field: emptyField(hit.path) });
+    }
+  }
   return {
     variantMode: nested ? "nested" : "flat",
     variantPath,
     fields,
     images: image ? [emptyField(nested ? `../${image.path}` : image.path)] : [],
-    attributes: [],
+    attributes,
     missingPolicy: "zero_stock",
   };
 }
+
+const ATTRIBUTE_GUESS: [string, RegExp][] = [
+  ["Renk", /^(renk|color|colour)$/i],
+  ["Beden", /^(beden|size|numara|olcu|ölçü)$/i],
+];
 
 export function blankDraft(): MappingDraft {
   return {

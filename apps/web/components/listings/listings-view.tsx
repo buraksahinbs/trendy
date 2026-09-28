@@ -3,6 +3,8 @@
 import {
   AlertCircle,
   ChevronDown,
+  LayoutGrid,
+  List,
   Lock,
   PackageSearch,
   RefreshCw,
@@ -11,9 +13,11 @@ import {
   X,
 } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useState, useSyncExternalStore } from "react";
 
 import { EmptyState } from "@/components/empty-state";
+import { ListingsGrid } from "@/components/listings/listings-grid";
+import { ProductThumb } from "@/components/listings/product-thumb";
 import { ErrorState } from "@/components/error-state";
 import {
   LISTING_STATUS,
@@ -64,6 +68,7 @@ export function ListingsView() {
   const urlSearch = params.get("ara") ?? "";
 
   const [search, setSearch] = useState(urlSearch);
+  const [view, setView] = useListingsView();
   const debouncedSearch = useDebounced(search.trim(), 350);
 
   const setParams = (patch: Record<string, string | null>, resetPage = true) => {
@@ -101,15 +106,37 @@ export function ListingsView() {
         title="Ürünler"
         description="Tedarikçi feed'lerinden gelen varyantlar ve Trendyol'daki karşılıkları."
         actions={
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => void listings.refetch()}
-            disabled={listings.isFetching}
-          >
-            <RefreshCw className={listings.isFetching ? "animate-spin" : undefined} />
-            Yenile
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="flex rounded-md border p-0.5" role="group" aria-label="Görünüm">
+              {(
+                [
+                  ["tablo", List, "Tablo"],
+                  ["kart", LayoutGrid, "Kart"],
+                ] as const
+              ).map(([v, Icon, label]) => (
+                <Button
+                  key={v}
+                  variant={view === v ? "secondary" : "ghost"}
+                  size="sm"
+                  className="h-7 px-2"
+                  aria-pressed={view === v}
+                  onClick={() => setView(v)}
+                >
+                  <Icon />
+                  <span className="sr-only sm:not-sr-only">{label}</span>
+                </Button>
+              ))}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void listings.refetch()}
+              disabled={listings.isFetching}
+            >
+              <RefreshCw className={listings.isFetching ? "animate-spin" : undefined} />
+              Yenile
+            </Button>
+          </div>
         }
       />
 
@@ -230,7 +257,11 @@ export function ListingsView() {
         )
       ) : (
         <div className="space-y-3">
-          <ListingsTable items={listings.data.items} dimmed={listings.isPlaceholderData} />
+          {view === "kart" ? (
+            <ListingsGrid items={listings.data.items} dimmed={listings.isPlaceholderData} />
+          ) : (
+            <ListingsTable items={listings.data.items} dimmed={listings.isPlaceholderData} />
+          )}
           <Pagination
             offset={offset}
             limit={PAGE_SIZE}
@@ -290,7 +321,7 @@ function ListingsTable({ items, dimmed }: { items: Listing[]; dimmed: boolean })
             <TableHead className="hidden md:table-cell">Barkod</TableHead>
             <TableHead>Durum</TableHead>
             <TableHead className="hidden text-right sm:table-cell">Stok</TableHead>
-            <TableHead className="hidden text-right sm:table-cell">Fiyat</TableHead>
+            <TableHead className="hidden text-right sm:table-cell">Trendyol fiyatı</TableHead>
             <TableHead className="hidden text-right xl:table-cell">Maliyet</TableHead>
             <TableHead className="hidden lg:table-cell">Son gönderim</TableHead>
             <TableHead className="w-8" />
@@ -307,8 +338,14 @@ function ListingsTable({ items, dimmed }: { items: Listing[]; dimmed: boolean })
                   className={cn(hasDetail && "cursor-pointer", open && "bg-muted/30")}
                   onClick={hasDetail ? () => setExpanded(open ? null : l.variantId) : undefined}
                 >
-                  <TableCell className="max-w-[18rem] whitespace-normal">
-                    <div className="flex items-start gap-2">
+                  <TableCell className="max-w-[20rem] whitespace-normal">
+                    <div className="flex items-start gap-3">
+                      <ProductThumb
+                        src={l.imageUrl}
+                        alt=""
+                        className="h-12 w-8 rounded-md"
+                        iconClassName="size-3.5"
+                      />
                       {l.lastError && (
                         <AlertCircle
                           className="text-destructive mt-0.5 size-4 shrink-0"
@@ -319,6 +356,19 @@ function ListingsTable({ items, dimmed }: { items: Listing[]; dimmed: boolean })
                         <div className="line-clamp-2 text-sm font-medium">
                           {l.title ?? <span className="text-muted-foreground">Başlıksız</span>}
                         </div>
+                        {variantLabel(l.attributes) && (
+                          <div className="mt-0.5 flex flex-wrap gap-1">
+                            {Object.entries(l.attributes ?? {}).map(([k, v]) => (
+                              <span
+                                key={k}
+                                title={k}
+                                className="bg-muted text-foreground/80 rounded px-1.5 py-px text-[11px] font-medium"
+                              >
+                                {v}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                         <div className="text-muted-foreground truncate text-xs">
                           {[l.brandName, l.productMainId].filter(Boolean).join(" · ")}
                         </div>
@@ -359,8 +409,8 @@ function ListingsTable({ items, dimmed }: { items: Listing[]; dimmed: boolean })
                   <TableCell className="hidden text-right tabular-nums sm:table-cell">
                     <div className="font-medium">{formatNumber(l.stock)}</div>
                     {l.tyStock !== null && l.tyStock !== l.stock && (
-                      <div className="text-muted-foreground text-xs" title="Trendyol'daki stok">
-                        TY: {formatNumber(l.tyStock)}
+                      <div className="text-muted-foreground text-xs">
+                        Trendyol&apos;da {formatNumber(l.tyStock)}
                       </div>
                     )}
                   </TableCell>
@@ -484,4 +534,51 @@ function ListingsSkeleton() {
       ))}
     </div>
   );
+}
+
+/** Varyantı ayırt eden kısa etiket ("Beyaz · S"); özellik yoksa boş. */
+function variantLabel(attributes: Record<string, string> | null | undefined): string {
+  return Object.values(attributes ?? {})
+    .filter(Boolean)
+    .join(" · ");
+}
+
+const VIEW_KEY = "trendy:urunler:gorunum";
+type View = "tablo" | "kart";
+const viewListeners = new Set<() => void>();
+// Depolama kapalıysa (gizli pencere vb.) seçim yalnızca bu oturumda tutulur.
+let memoryView: View = "tablo";
+
+function readView(): View {
+  try {
+    const v = localStorage.getItem(VIEW_KEY);
+    if (v === "kart" || v === "tablo") return v;
+  } catch {
+    // yok say
+  }
+  return memoryView;
+}
+
+function subscribeView(cb: () => void) {
+  viewListeners.add(cb);
+  window.addEventListener("storage", cb);
+  return () => {
+    viewListeners.delete(cb);
+    window.removeEventListener("storage", cb);
+  };
+}
+
+/** Tablo/kart tercihi bu tarayıcıda hatırlanır; sunucuda ve ilk çizimde tablo. */
+function useListingsView() {
+  const view = useSyncExternalStore(subscribeView, readView, () => "tablo" as View);
+  const update = (v: View) => {
+    memoryView = v;
+    try {
+      localStorage.setItem(VIEW_KEY, v);
+    } catch {
+      // yok say
+    }
+    viewListeners.forEach((l) => l());
+  };
+  return [view, update] as const;
 }

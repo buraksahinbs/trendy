@@ -167,6 +167,10 @@ export async function listOrders(tx: TenantTx, f: OrderFilter) {
       customerName: orders.customerName,
       lineCount: sql<number>`(SELECT count(*)::int FROM ${orderLines} ol WHERE ol.order_id = "orders"."id")`,
       itemCount: sql<number>`(SELECT coalesce(sum(ol.quantity), 0)::int FROM ${orderLines} ol WHERE ol.order_id = "orders"."id")`,
+      /** Listede gösterilen ilk satırın ürün adı (satır sırasına göre). */
+      firstProductName: sql<
+        string | null
+      >`(SELECT ol.product_name FROM ${orderLines} ol WHERE ol.order_id = "orders"."id" ORDER BY ol.id LIMIT 1)`,
     })
     .from(orders)
     .where(where)

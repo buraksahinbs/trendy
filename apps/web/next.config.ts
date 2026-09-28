@@ -14,6 +14,8 @@ const nextConfig: NextConfig = {
       }
     : {}),
   reactStrictMode: true,
+  // Geliştirme rozeti kenar çubuğundaki "Ayarlar" bağlantısının üstüne binmesin.
+  devIndicators: { position: "bottom-right" },
   poweredByHeader: false,
   async rewrites() {
     return [{ source: "/api/:path*", destination: `${apiUrl}/:path*` }];

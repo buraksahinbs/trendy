@@ -98,6 +98,17 @@ export function OverviewView() {
 
       <PanelAlerts className="mb-6" />
 
+      {/* Kurulum bitmeden sıfırlarla dolu kartlar değil, yapılacak iş öne çıkar. */}
+      {setupLoading ? (
+        <Skeleton className="mb-6 h-72 rounded-xl" />
+      ) : (
+        !setupDone && (
+          <div className="mb-6">
+            <OnboardingChecklist state={checklist} />
+          </div>
+        )
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           icon={CheckCircle2}
@@ -141,11 +152,6 @@ export function OverviewView() {
 
       <div className="mt-6 grid gap-6 xl:grid-cols-5">
         <div className="space-y-6 xl:col-span-3">
-          {setupLoading ? (
-            <Skeleton className="h-80 rounded-xl" />
-          ) : (
-            !setupDone && <OnboardingChecklist state={checklist} />
-          )}
           <TrendyolCard status={status} />
         </div>
         <Card className="gap-4 self-start xl:col-span-2">
