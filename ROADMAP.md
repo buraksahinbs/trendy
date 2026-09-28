@@ -303,7 +303,7 @@ docs/
 
 **Hedef:** Trendyol'a giden **tek** kapı. Tüm limit, retry ve hata mantığı burada.
 
-- [ ] Changelog'u kontrol et. Bölüm 2'de değişen bir şey varsa bu dosyayı güncelle.
+- [x] Changelog'u kontrol et. Bölüm 2'de değişen bir şey varsa bu dosyayı güncelle. _(28.09.2026: stok/fiyat ve ürün filtreleme servislerini etkileyen değişiklik yok; bulgular `docs/TRENDYOL_NOTES.md`.)_
 - [x] Base URL ortama göre seçilir (stage/prod). Tenant bazında ayarlanır.
 - [x] Her isteğe Basic Auth ve `User-Agent: "{sellerId} - {FIRMA_ADI}"` header'ı eklenir. Firma adı ≤30 karakter ve alfanümerik olacak şekilde doğrulanır.
 - [~] _(Bellek içi ve Redis (Lua, atomik) kayan pencere uygulamaları hazır. Barkod limiti sabiti tanımlı, senkron job'unda uygulanacak.)_ **Rate limiter** (Redis tabanlı, tenant+grup anahtarlı token bucket):
@@ -317,20 +317,20 @@ docs/
   - 400/401/403/404 → retry yok. Hata job log'a açıklamasıyla yazılır.
 - [x] Hata sınıfları: `TrendyolAuthError`, `TrendyolRateLimitError`, `TrendyolValidationError`, `TrendyolDeprecatedEndpointError`, `TrendyolServerError`.
 - [x] İstek/yanıt loglama (gövde kısaltılmış, gizli bilgiler maskeli), süre ölçümü.
-- [ ] Endpoint fonksiyonları (tipli). Tipler **dokümandaki OpenAPI'den** türetilir, elle uydurulmaz: _(Bekliyor: geliştirme ortamı developers.trendyol.com'a erişemiyor; doküman kopyaları `docs/trendyol-api/` altına eklenecek.)_
+- [~] Endpoint fonksiyonları (tipli). Tipler **dokümandaki OpenAPI'den** türetilir, elle uydurulmaz: _(Resmi doküman kopyaları `docs/trendyol-api/` altında. Senkron dilimi için gerekenler tamam.)_
   - [ ] `getBrands`, `getBrandsByName`
   - [ ] `getCategoryTree`
   - [ ] `getCategoryAttributesV2`, `getCategoryAttributeValuesV2`
   - [ ] `createProductsV2`
   - [ ] `updateUnapprovedProducts`, `updateApprovedContent`, `updateApprovedVariants`, `updateDeliveryInfo`
-  - [ ] `updatePriceAndInventory`
-  - [ ] `getBatchRequestResult`
-  - [ ] `filterApprovedProducts`, `filterUnapprovedProducts`, `getProductBase`
+  - [x] `updatePriceAndInventory`
+  - [x] `getBatchRequestResult` _(stok/fiyat batch'inde batch status dönmediği için `isBatchComplete` öğe durumlarına bakar)_
+  - [x] `filterApprovedProducts`, `filterUnapprovedProducts`, `getProductBase` _(+ `filterApprovedProductsInventoryAndPrice`, `paginate` ile 10.000 sonrası `nextPageToken`)_
   - [ ] `getSuppliersAddresses`, `getCargoProviders`, `getOriginValues`
   - [ ] `getShipmentPackagesStream`, `getShipmentPackagesV2`
   - [ ] Webhook: `createWebhook`, `listWebhooks`, `updateWebhook`, `deleteWebhook`, `activate`, `deactivate`
-- [ ] **Kimlik doğrulama testi:** Tenant API bilgilerini girdiğinde hafif bir okuma çağrısı yapılır, 401/403 ayrıştırılır, sonuç `verified_at` alanına yazılır. Hangi endpoint'in kullanılacağı `docs/DECISIONS.md`'ye yazılır.
-- [ ] Mock sunucu: Tüm endpoint'ler için örnek yanıtlar (`fixtures/trendyol/`). 429, 401, 5xx ve 426 senaryoları dahil.
+- [x] **Kimlik doğrulama testi:** Tenant API bilgilerini girdiğinde hafif bir okuma çağrısı yapılır, 401/403 ayrıştırılır, sonuç `verified_at` alanına yazılır. Hangi endpoint'in kullanılacağı `docs/DECISIONS.md`'ye yazılır. _(`POST /trendyol/credentials/:env/verify`)_
+- [~] Mock sunucu: Tüm endpoint'ler için örnek yanıtlar (`fixtures/trendyol/`). 429, 401, 5xx ve 426 senaryoları dahil. _(Yazılan endpoint'ler için doküman örneklerinden fixture'lar; hata senaryoları istemci testlerinde.)_
 - [ ] Stage ortamında en az bir gerçek okuma çağrısı yapılır, Basic Auth sırası teyit edilir ve `TRENDYOL_NOTES.md`'ye yazılır.
 
 **Kabul kriterleri:** İstemci birim testleri mock ile geçiyor, rate limiter yük testinde limitleri aşmıyor, stage'de auth doğrulandı.

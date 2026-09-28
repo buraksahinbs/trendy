@@ -107,3 +107,9 @@
 - Stok değişikliği bu job'un işi değil; kanonik ürün ve senkron job'ları (Faz 5, 9) `missing_since` ve ham veriye bakar.
 
 **Alternatif:** Tedarikçi başına BullMQ Job Scheduler. Tedarikçi her değiştiğinde zamanlayıcıyla senkron tutmak gerekirdi; tek bir tarayıcı daha basit ve kendini onarır.
+
+## 2026-09-28 — API bilgisi doğrulama çağrısı
+
+**Karar:** Doğrulama `GET .../products/approved/inventory-and-price?page=0&size=1` ile yapılır (Product Integration Read grubu, salt-okuma). Sunucu hatasında tekrar denenmez (kullanıcı bekliyor); 401 → bilgiler hatalı, 403 → yetki, stage 503 → IP yetkilendirmesi yok olarak ayrıştırılır. Başarıda `verified_at` yazılır ve onaylı content sayısı gösterilir.
+**Gerekçe:** Hiçbir veri değiştirmez; canlı ortamda güvenle çalışır. Aynı zamanda senkronun kullanacağı servise erişimi de kanıtlar.
+**Alternatif:** Marka/kategori listesi. Satıcıya özel değil, satıcı yetkisini kanıtlamaz.

@@ -1,0 +1,64 @@
+{
+  "totalElements": 1,
+  "totalPages": 1,
+  "page": 0,
+  "size": 20,
+  "nextPageToken": "eyJzb3J0IjpbMTI3MTU4MTVdfQ==",
+  "content": [
+    {
+      "contentId": 12715815,
+      "productMainId": "12613876842A60",
+      "brand": { "id": 315675, "name": "GUEYA" },
+      "category": { "id": 91266, "name": "DOKUNMAYIN Attribute Attribute" },
+      "creationDate": 1760531038063,
+      "lastModifiedDate": 1760938781669,
+      "title": "Açık Gri T-",
+      "description": "değişti değişti2",
+      "images": [{ "url": "/mediacenter-stage3/stage/QC_PREP/1.jpg" }],
+      "attributes": [{ "attributeId": 47, "attributeName": "Renk", "attributeValue": "Black" }],
+      "variants": [
+        {
+          "variantId": 70228905,
+          "supplierId": 99999999,
+          "barcode": "12613876842A60",
+          "commission": 7.83,
+          "attributes": [
+            {
+              "attributeId": 293,
+              "attributeName": "Beden",
+              "attributeValueId": 4602,
+              "attributeValue": "77 x 200 cm"
+            }
+          ],
+          "onSale": false,
+          "channels": ["CORE", "LUXE"],
+          "deliveryOption": { "deliveryDuration": 0 },
+          "stock": { "quantity": 0, "lastModifiedDate": 1774948958844 },
+          "price": { "salePrice": 222, "listPrice": 222, "priceSeenByCustomer": 169 },
+          "stockCode": "STK-stokum-1",
+          "origin": "AD",
+          "vatRate": 0,
+          "locked": false,
+          "lockReason": null,
+          "lockDate": null,
+          "archived": false,
+          "archivedDate": null,
+          "blacklisted": false
+        },
+        {
+          "variantId": 70229505,
+          "supplierId": 99999999,
+          "barcode": "12613876842A61",
+          "onSale": true,
+          "price": { "salePrice": 250, "listPrice": 300 },
+          "stockCode": "STK-stokum-2",
+          "vatRate": 20,
+          "locked": true,
+          "lockReason": "Kritik fiyat hatası",
+          "archived": false,
+          "blacklisted": false
+        }
+      ]
+    }
+  ]
+}

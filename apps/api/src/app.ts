@@ -3,7 +3,7 @@ import type { Db, MemberRole, SessionInfo } from "@trendy/db";
 import { getSession } from "@trendy/db";
 import type { JobQueue } from "@trendy/jobs";
 import type { Logger, SecretBox } from "@trendy/shared";
-import type { RateLimiter } from "@trendy/trendyol-client";
+import type { RateLimiter, TrendyolClientConfig } from "@trendy/trendyol-client";
 import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
 import { ZodError } from "zod";
 import { authRoutes } from "./routes/auth.js";
@@ -16,6 +16,10 @@ export interface AppDeps {
   /** Giriş denemesi sınırlaması (brute-force). Üretimde Redis tabanlı olmalı. */
   limiter: RateLimiter;
   queue: JobQueue;
+  /** Trendyol User-Agent'taki entegratör adı (`TRENDYOL_INTEGRATOR_NAME`). */
+  integratorName: string;
+  /** Yalnızca testler için: mock Trendyol adresi vb. */
+  trendyolClientOptions?: Partial<Pick<TrendyolClientConfig, "baseUrl" | "sleep" | "random">>;
   /** Yalnızca testler için: feed analizinde yerel adreslere izin. */
   feedDownloadOptions?: { allowPrivateNetwork?: boolean };
   logger?: Logger;

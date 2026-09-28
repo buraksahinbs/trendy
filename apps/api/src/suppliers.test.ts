@@ -73,6 +73,7 @@ describe.skipIf(!url)("tedarikçi uçları", () => {
       },
       sessionTtlMs: 3_600_000,
       secureCookies: false,
+      integratorName: "SelfIntegration",
       feedDownloadOptions: { allowPrivateNetwork: true },
     };
     app = await buildApp(deps);

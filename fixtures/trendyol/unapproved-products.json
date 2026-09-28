@@ -1,0 +1,34 @@
+{
+  "totalElements": 2,
+  "totalPages": 1,
+  "page": 0,
+  "size": 1000,
+  "content": [
+    {
+      "supplierId": 99999999,
+      "productMainId": "M-1",
+      "barcode": "869000000001",
+      "title": "Onay bekleyen ürün",
+      "quantity": 5,
+      "listPrice": 120,
+      "salePrice": 100,
+      "vatRate": 20,
+      "stockCode": "S-1",
+      "rejectReasonDetails": []
+    },
+    {
+      "supplierId": 99999999,
+      "productMainId": "M-2",
+      "barcode": "869000000002",
+      "title": "Reddedilen ürün",
+      "quantity": 1,
+      "listPrice": 50,
+      "salePrice": 50,
+      "vatRate": 20,
+      "stockCode": null,
+      "rejectReasonDetails": [
+        { "rejectReason": "Görsel", "rejectReasonDetail": "Görsel çözünürlüğü yetersiz" }
+      ]
+    }
+  ]
+}
