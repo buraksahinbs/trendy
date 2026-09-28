@@ -16,6 +16,7 @@ const app = await buildApp({
   secretBox: secretBoxFromEnv(env),
   limiter: new RedisRateLimiter(redis, "api:"),
   queue,
+  redis,
   integratorName: env.TRENDYOL_INTEGRATOR_NAME,
   ...(env.PUBLIC_BASE_URL ? { publicBaseUrl: env.PUBLIC_BASE_URL.replace(/\/$/, "") } : {}),
   logger,

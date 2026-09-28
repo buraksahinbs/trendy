@@ -31,6 +31,7 @@ import {
   paginate,
   PRICE_INVENTORY_MAX_ITEMS,
   TrendyolClient,
+  trendyolErrorCode,
   updatePriceAndInventory,
   type RateLimiter,
   type TrendyolClientConfig,
@@ -113,7 +114,10 @@ export async function withJobLog<T extends Record<string, unknown>>(
       await run((t) => finishJobLog(t, id, "skipped", { ...summary, reason: err.reason }, message));
       return summary;
     }
-    await run((t) => finishJobLog(t, id, "failed", summary, message));
+    // Hata sınıfı uyarı kurallarında kullanılır (ör. 401 → API bilgileri, 426 → kalkmış endpoint).
+    await run((t) =>
+      finishJobLog(t, id, "failed", { ...summary, errorCode: trendyolErrorCode(err) }, message),
+    );
     throw err;
   }
 }

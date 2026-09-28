@@ -155,3 +155,13 @@
 - Sipariş sonrası yerel stok düşürme (opsiyonel) henüz yok: dropshipping'de kaynak tedarikçi stoğudur, bir sonraki feed çekimi günceller.
 
 **Not:** Tek tablolu drizzle sorgularında alt sorgudan dış sütuna başvururken sütun açıkça nitelenir (`"orders"."id"`); drizzle niteleme yapmadığında iç tablonun sütununa bağlanıp yanlış sonuç veriyordu (testle yakalandı).
+
+## 2026-09-28 — Operasyon: sağlık, uyarılar, KVKK saklama
+
+**Karar:**
+
+- `/health` yalnızca canlılık; `/health/ready` veritabanı, Redis ve worker'ı kontrol eder (worker her dakika Redis'e `worker:heartbeat` yazar, 3 dakikadan eskiyse hazır değil). Yanıtta iç ayrıntı yoktur.
+- Uyarılar ayrı tabloda tutulmaz; `tenantAlerts` iş logları (hata sınıfı `summary.errorCode`: auth, rate_limit, validation, deprecated_endpoint, server), tedarikçiler ve kanal durumundan her istekte hesaplar. Sorun düzelince uyarı kendiliğinden kaybolur. Dış bildirim (e-posta) sonraki adım.
+- KVKK: kapanmış siparişlerde (Delivered, Cancelled, Returned, UnSupplied) `order_pii_retention_days` gün sonra adres, iletişim ve müşteri adı silinir; sipariş, satır ve tutarlar korunur. Varsayılan 180 gün; hukuki danışmanlıkla belirlenmeli (ROADMAP §7).
+
+**Not:** Ham SQL'de tarih parametreleri ISO metin olarak geçirilir (postgres.js `Date` kabul etmiyor) ve enum dizileri `::text` ile çevrilir (aksi hâlde sürücü diziye çevirmiyor). İkisi de testlerle yakalandı.

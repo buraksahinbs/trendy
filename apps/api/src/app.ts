@@ -7,6 +7,7 @@ import type { RateLimiter, TrendyolClientConfig } from "@trendy/trendyol-client"
 import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
 import { ZodError } from "zod";
 import { authRoutes } from "./routes/auth.js";
+import { alertRoutes, healthRoutes } from "./routes/ops.js";
 import { orderRoutes, orderWebhookReceiver, orderWebhookSettingsRoutes } from "./routes/orders.js";
 import { settingsRoutes } from "./routes/settings.js";
 import { jobRoutes, supplierRoutes } from "./routes/suppliers.js";
@@ -20,6 +21,8 @@ export interface AppDeps {
   queue: JobQueue;
   /** Trendyol User-Agent'taki entegratör adı (`TRENDYOL_INTEGRATOR_NAME`). */
   integratorName: string;
+  /** Hazırlık kontrolü için Redis (ping + worker heartbeat okuma). */
+  redis?: { ping(): Promise<string>; get(key: string): Promise<string | null> };
   /** Dışarıdan erişilen API adresi (webhook URL'si için), ör. `https://api.ornek.com`. */
   publicBaseUrl?: string;
   /** Yalnızca testler için: mock Trendyol adresi vb. */
@@ -104,6 +107,8 @@ export async function buildApp(deps: AppDeps) {
   });
 
   app.get("/health", async () => ({ ok: true }));
+  await app.register(healthRoutes, { prefix: "/health" });
+  await app.register(alertRoutes, { prefix: "/alerts" });
   await app.register(authRoutes, { prefix: "/auth" });
   await app.register(trendyolRoutes, { prefix: "/trendyol" });
   await app.register(supplierRoutes, { prefix: "/suppliers" });

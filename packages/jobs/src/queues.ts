@@ -5,6 +5,9 @@ import { Queue, type ConnectionOptions } from "bullmq";
  */
 export const XML_FETCH_QUEUE = "xml-fetch";
 export const TRENDYOL_QUEUE = "trendyol";
+/** Worker her dakika buraya zaman yazar; API hazırlık kontrolü worker'ın ayakta olduğunu buradan anlar. */
+export const WORKER_HEARTBEAT_KEY = "worker:heartbeat";
+export const WORKER_HEARTBEAT_MAX_AGE_MS = 3 * 60_000;
 
 export interface XmlFetchPayload {
   tenantId: number;

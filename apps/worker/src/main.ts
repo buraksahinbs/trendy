@@ -1,7 +1,8 @@
-import { createDatabase, deleteExpiredSessions } from "@trendy/db";
+import { createDatabase, deleteExpiredSessions, purgeExpiredOrderPii } from "@trendy/db";
 import {
   createJobQueue,
   TRENDYOL_QUEUE,
+  WORKER_HEARTBEAT_KEY,
   XML_FETCH_QUEUE,
   type TrendyolPayload,
   type XmlFetchPayload,
@@ -97,6 +98,7 @@ const CLEANUP_EVERY_MS = 60 * 60_000;
 
 async function tick() {
   try {
+    await limiterRedis.set(WORKER_HEARTBEAT_KEY, new Date().toISOString(), "EX", 300);
     const r = await scheduleDueFetches({ db: database.db, queue, logger });
     if (r.queued) logger.info(r, "zamanlanmış çekimler kuyruğa eklendi");
     const t = await scheduleTrendyolJobs({ db: database.db, queue });
@@ -109,6 +111,9 @@ async function cleanup() {
   try {
     const n = await deleteExpiredSessions(database.db);
     if (n) logger.info({ deleted: n }, "süresi dolan oturumlar silindi");
+    const purged = await purgeExpiredOrderPii(database.db);
+    if (purged)
+      logger.info({ orders: purged }, "saklama süresi dolan siparişlerin kişisel verisi silindi");
   } catch (err) {
     logger.error({ err }, "temizlik hatası");
   }

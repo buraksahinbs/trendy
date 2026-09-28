@@ -19,6 +19,8 @@ const patchBody = z
         z.number().positive().max(1_000_000),
       )
       .refine((r) => !("TRY" in r), "TRY için kur girilmez"),
+    /** KVKK: kapanmış siparişlerde kişisel verinin silineceği gün (hukuki danışmanlıkla belirlenmeli). */
+    orderPiiRetentionDays: z.number().int().min(30).max(3650),
   })
   .partial()
   .strict();

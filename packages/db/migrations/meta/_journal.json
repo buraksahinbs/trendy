@@ -57,6 +57,13 @@
       "when": 1790610751959,
       "tag": "0007_order_webhooks_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790611785739,
+      "tag": "0008_retention",
+      "breakpoints": true
     }
   ]
 }

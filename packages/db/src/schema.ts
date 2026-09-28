@@ -75,6 +75,11 @@ export const tenants = pgTable("tenants", {
     .default(0.3),
   /** Elle girilen döviz kurları, ör. `{ "USD": 41.25 }` (1 birim = kaç TL). */
   fxRates: jsonb("fx_rates").$type<Record<string, number>>().notNull().default({}),
+  /**
+   * KVKK: kapanmış siparişlerde (teslim, iptal, iade, tedarik edilemedi) kişisel verinin
+   * (adres, iletişim, müşteri adı) silineceği gün sayısı. Hukuki danışmanlıkla belirlenmeli.
+   */
+  orderPiiRetentionDays: integer("order_pii_retention_days").notNull().default(180),
   createdAt: createdAt(),
 });
 
@@ -382,6 +387,8 @@ export const orders = pgTable(
     createdBy: text("created_by"),
     originPackageIds: jsonb("origin_package_ids"),
     customerName: text("customer_name"),
+    /** Saklama süresi dolunca kişisel veri silindi. */
+    piiPurgedAt: ts("pii_purged_at"),
     lastModifiedAt: ts("last_modified_at").notNull(),
     /** Kişisel veri içerir (Faz 10): saklama süresi politikası uygulanacak. */
     raw: jsonb("raw").notNull(),

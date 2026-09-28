@@ -485,7 +485,7 @@ docs/
   - Trendyol'un webhook'u pasife alma ihtimaline karşı panelde durum göstergesi ve "yeniden aktifleştir" aksiyonu.
   - Satıcı başına 15 webhook sınırı nedeniyle mevcut webhook'lar listelenir, kopya oluşturulmaz.
 - [ ] Sipariş geldiğinde stok etkisi: Dropshipping senaryosunda asıl kaynak tedarikçi stoğudur. Yine de bir sonraki XML çekimine kadar yerel stok düşürülerek Trendyol'a güncelleme gönderilebilir (opsiyonel, tenant ayarı).
-- [~] Kişisel veri: Sipariş ham verisinde kişisel bilgiler bulunur. Saklama süresi politikası uygulanır; panelde yalnızca yetkili roller görür. _(T.C. kimlik no hiç saklanmaz; liste uçları kişisel veri döndürmez, adres yalnızca owner'a. Saklama süresi/silme job'u henüz yok.)_
+- [x] Kişisel veri: Sipariş ham verisinde kişisel bilgiler bulunur. Saklama süresi politikası uygulanır; panelde yalnızca yetkili roller görür. _(T.C. kimlik no hiç saklanmaz; liste uçları kişisel veri döndürmez, adres yalnızca owner'a; saklama süresi dolan kapanmış siparişlerin kişisel verisi saatlik temizlikte silinir.)_
 
 **Kabul kriterleri:** Stage'de test siparişi oluşturulup (Test Siparişi Oluşturma servisi) sistemde görünüyor, statü güncellemeleri yansıyor, aynı sipariş iki kez kaydedilmiyor.
 
@@ -507,9 +507,9 @@ docs/
 
 ### Faz 12 — Operasyon, izleme, güvenilirlik
 
-- [ ] Sağlık kontrolü uçları (API, worker, Redis, DB).
+- [x] Sağlık kontrolü uçları (API, worker, Redis, DB). _(`/health` canlılık, `/health/ready` DB + Redis + worker sinyali; biri yoksa 503.)_
 - [ ] Kuyruk panosu (ör. Bull Board), yalnızca admin erişimli.
-- [ ] Alarm kuralları: Tenant bazında art arda başarısız senkron, 401 (API bilgisi değişmiş olabilir), 426 (kullanımdan kalkmış endpoint), anormal 429 oranı, sipariş çekiminde uzun süreli boşluk.
+- [~] Alarm kuralları: Tenant bazında art arda başarısız senkron, 401 (API bilgisi değişmiş olabilir), 426 (kullanımdan kalkmış endpoint), anormal 429 oranı, sipariş çekiminde uzun süreli boşluk. _(Hepsi `GET /alerts` ile panelde; ayrıca tedarikçi arızası, güvenlik freni, eksik yapılandırma/eşleştirme, kanal hataları, onay bekleyen fiyat. E-posta/bildirim gönderimi yok.)_
 - [ ] **Changelog izleyici:** Trendyol changelog sayfasını günlük çekip değişiklik olduğunda ekibe bildirim gönderen job.
 - [ ] Trendyol API durum sayfası (`/api-status`) kontrolü; kesinti varsa panelde bilgi bandı.
 - [ ] Veritabanı yedekleme ve geri yükleme testi.
@@ -551,7 +551,7 @@ docs/
 - [x] Tenant izolasyonu (uygulama + mümkünse RLS).
 - [ ] XML indirmede SSRF ve XXE korumaları.
 - [ ] Webhook uç noktasında kimlik doğrulama ve gövde boyutu sınırı.
-- [ ] Sipariş kişisel verileri için saklama süresi ve silme politikası.
+- [x] Sipariş kişisel verileri için saklama süresi ve silme politikası. _(Kapanmış siparişlerde `order_pii_retention_days` (varsayılan 180, ayarlanabilir) sonra adres/iletişim/ad silinir; T.C. kimlik no hiç saklanmaz. Süre hukuki danışmanlıkla belirlenmeli.)_
 - [ ] Rol bazlı erişim (kişisel veri görüntüleme yetkisi).
 - [ ] KVKK: Aydınlatma metni, veri işleyen sözleşmesi, sunucu lokasyonu ve yurt dışına aktarım değerlendirmesi. (Hukuki danışmanlık — bu dosya hukuki tavsiye değildir.)
 

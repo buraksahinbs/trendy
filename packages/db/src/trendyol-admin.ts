@@ -182,6 +182,7 @@ export interface TenantSettings {
   safetyStock: number;
   maxAutoChangeRate: number;
   fxRates: Record<string, number>;
+  orderPiiRetentionDays: number;
 }
 
 const settingsColumns = {
@@ -192,6 +193,7 @@ const settingsColumns = {
   safetyStock: tenants.safetyStock,
   maxAutoChangeRate: tenants.maxAutoChangeRate,
   fxRates: tenants.fxRates,
+  orderPiiRetentionDays: tenants.orderPiiRetentionDays,
 };
 
 export async function getTenantSettings(

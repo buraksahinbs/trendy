@@ -26,3 +26,16 @@ export class TrendyolDeprecatedEndpointError extends TrendyolError {}
 
 /** 5xx veya ağ hatası: tekrar denemeler tükendi. */
 export class TrendyolServerError extends TrendyolError {}
+
+export type TrendyolErrorCode =
+  "auth" | "rate_limit" | "validation" | "deprecated_endpoint" | "server" | "unknown";
+
+/** İş loglarında ve uyarı kurallarında kullanılan hata sınıfı. */
+export function trendyolErrorCode(err: unknown): TrendyolErrorCode {
+  if (err instanceof TrendyolAuthError) return "auth";
+  if (err instanceof TrendyolRateLimitError) return "rate_limit";
+  if (err instanceof TrendyolValidationError) return "validation";
+  if (err instanceof TrendyolDeprecatedEndpointError) return "deprecated_endpoint";
+  if (err instanceof TrendyolServerError) return "server";
+  return "unknown";
+}

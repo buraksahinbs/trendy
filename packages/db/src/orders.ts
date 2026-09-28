@@ -246,3 +246,46 @@ export async function saveOrderWebhook(
 export async function touchOrderWebhook(tx: TenantTx): Promise<void> {
   await tx.update(orderWebhooks).set({ lastReceivedAt: sql`now()` });
 }
+
+// ── KVKK saklama süresi ─────────────────────────────────────────────────────
+
+/** Kapanmış sipariş statüleri: bu statülerde saklama süresi sayılmaya başlar. */
+export const TERMINAL_ORDER_STATUSES = [
+  "Delivered",
+  "Cancelled",
+  "Returned",
+  "UnSupplied",
+] as const;
+
+/** Silinen kişisel veri alanları (ham veri içinde). Sipariş, satır ve tutar bilgisi korunur. */
+export const ORDER_PII_KEYS = [
+  "shipmentAddress",
+  "invoiceAddress",
+  "customerEmail",
+  "customerFirstName",
+  "customerLastName",
+  "customerId",
+  "taxNumber",
+  "identityNumber",
+  "customerTckn",
+] as const;
+
+/**
+ * Saklama süresi dolan kapanmış siparişlerin kişisel verisini siler (tüm tenant'lar, sistem
+ * bağlantısı). Süre tenant ayarıdır (`order_pii_retention_days`). İdempotenttir.
+ */
+export async function purgeExpiredOrderPii(db: Db, now: Date = new Date()): Promise<number> {
+  const keys = sql.raw(`ARRAY[${ORDER_PII_KEYS.map((k) => `'${k}'`).join(",")}]`);
+  const statuses = sql.raw(TERMINAL_ORDER_STATUSES.map((s) => `'${s}'`).join(","));
+  const rows = await db.execute<{ id: number }>(sql`
+    UPDATE orders o
+    SET raw = o.raw - ${keys}::text[], customer_name = NULL, pii_purged_at = ${now.toISOString()}
+    FROM tenants t
+    WHERE t.id = o.tenant_id
+      AND o.pii_purged_at IS NULL
+      AND o.status IN (${statuses})
+      AND o.last_modified_at < ${now.toISOString()}::timestamptz - make_interval(days => t.order_pii_retention_days)
+    RETURNING o.id
+  `);
+  return rows.length;
+}
