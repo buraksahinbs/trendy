@@ -42,6 +42,8 @@ export interface MockOptions {
   apiSecret: string;
   products: MockProduct[];
   packages: MockPackage[];
+  /** Sabit port (demo için); verilmezse rastgele. */
+  port?: number;
 }
 
 export interface PriceInventoryCall {
@@ -193,7 +195,7 @@ export async function startMockTrendyol(opts: MockOptions) {
       return send(404, { errors: [`mock: bilinmeyen yol ${p}`] });
     });
   });
-  await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
+  await new Promise<void>((r) => server.listen(opts.port ?? 0, "127.0.0.1", r));
   return {
     url: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
     calls,
@@ -205,7 +207,7 @@ export async function startMockTrendyol(opts: MockOptions) {
 }
 
 /** ETag destekli sahte tedarikçi XML feed'i; içerik test sırasında değiştirilebilir. */
-export async function startFeedServer(initial: string) {
+export async function startFeedServer(initial: string, port?: number) {
   let xml = initial;
   let hits = 0;
   let notModified = 0;
@@ -220,7 +222,7 @@ export async function startFeedServer(initial: string) {
     res.writeHead(200, { "content-type": "application/xml; charset=utf-8", etag: etag() });
     res.end(xml);
   });
-  await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
+  await new Promise<void>((r) => server.listen(port ?? 0, "127.0.0.1", r));
   return {
     url: `http://127.0.0.1:${(server.address() as AddressInfo).port}/feed.xml`,
     set: (next: string) => (xml = next),
