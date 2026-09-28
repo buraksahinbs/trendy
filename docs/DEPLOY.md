@@ -10,13 +10,25 @@ Bu kılavuz Trendy'yi tek bir Linux sunucuya (VPS) Docker ile kurar. Kurulumdan 
 | İşletim sistemi | Ubuntu 22.04/24.04 veya Debian 12 (64-bit)                                |
 | Donanım         | En az 2 vCPU, 4 GB RAM, 40 GB disk (100.000+ ürün için 8 GB RAM önerilir) |
 | Alan adı        | Örn. `panel.firmaniz.com`; DNS **A kaydı** sunucunun IP'sini göstermeli   |
-| Açık portlar    | 22 (SSH), 80 ve 443 (HTTP/HTTPS). Başka port açmayın.                     |
+| Açık portlar    | SSH portunuz, 80 ve 443 (HTTP/HTTPS). Başka port açmayın.                 |
 
 > **Alan adında** `trendyol`, `dolap` veya `localhost` geçmemeli: Trendyol webhook adreslerinde bu
 > kelimeleri kabul etmiyor.
 >
 > Alan adınız yoksa geçici olarak `<sunucu-ip>.sslip.io` kullanılabilir (ör. `203.0.113.10.sslip.io`);
 > bu adres otomatik olarak sunucunuzun IP'sine çözülür ve HTTPS sertifikası alınabilir.
+
+## Hızlı kurulum (tek komut)
+
+Sunucuya root olarak SSH ile bağlanıp şunu çalıştırın (2–4. adımları otomatik yapar):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/buraksahinbs/trendy/main/deploy/bootstrap.sh \
+  | bash -s -- panel.firmaniz.com admin@firmaniz.com
+```
+
+Betik Docker'ı kurar, RAM 4 GB'tan azsa swap ekler, güvenlik duvarını **o anki SSH portunu
+koruyarak** açar, kodu `/opt/trendy`'ye indirir ve kurulumu başlatır. Bittiğinde adresi yazar.
 
 ## 2. Sunucuyu hazırlama
 
@@ -31,6 +43,8 @@ curl -fsSL https://get.docker.com | sudo sh
 sudo apt -y install git
 
 # Güvenlik duvarı: yalnızca SSH, HTTP, HTTPS
+# ⚠️ SSH portunuz 22 değilse "OpenSSH" yerine kendi portunuzu yazın (ör. 2222/tcp),
+# yoksa sunucuya erişiminizi kaybedersiniz.
 sudo apt -y install ufw
 sudo ufw allow OpenSSH && sudo ufw allow 80/tcp && sudo ufw allow 443/tcp && sudo ufw allow 443/udp
 sudo ufw --force enable
