@@ -1,0 +1,14 @@
+{
+  "name": "@trendy/jobs",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "bullmq": "^6.3.9",
+    "cron-parser": "^5.10.1",
+    "ioredis": "^6.0.0"
+  }
+}

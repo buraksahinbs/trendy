@@ -1,0 +1,66 @@
+{
+  "hasMore": false,
+  "nextCursor": null,
+  "size": 50,
+  "content": [
+    {
+      "shipmentAddress": {
+        "id": 11111111,
+        "firstName": "John",
+        "lastName": "Doe",
+        "address1": "John Doe's House",
+        "city": "İstanbul",
+        "district": "Sarıyer",
+        "postalCode": "34200",
+        "countryCode": "TR",
+        "phone": "333333333",
+        "fullAddress": "John Doe's House",
+        "fullName": "John Doe"
+      },
+      "orderNumber": "10654411111",
+      "paymentMethod": "Alışveriş Kredisi",
+      "packageGrossAmount": 498.9,
+      "packageTotalDiscount": 0.0,
+      "customerFirstName": "John",
+      "customerEmail": "pf+j2jm8x99@trendyolmail.com",
+      "customerId": 888888888,
+      "supplierId": 99999999,
+      "customerLastName": "Doe",
+      "channelId": 1,
+      "shipmentPackageId": 3330111111,
+      "cargoTrackingNumber": 7280027504111111,
+      "cargoProviderName": "Trendyol Express",
+      "lines": [
+        {
+          "quantity": 1,
+          "productSize": "Tek Ebat",
+          "stockCode": "111111",
+          "productName": "Kuş ve Çiçek Desenli Tepsi - Yeşil / Altın Sarısı - 49 cm",
+          "contentId": 1239111111,
+          "sellerId": 2738,
+          "lineGrossAmount": 498.9,
+          "lineTotalDiscount": 0.0,
+          "currencyCode": "TRY",
+          "lineId": 4765111111,
+          "vatRate": 20.0,
+          "barcode": "8683772071724",
+          "orderLineItemStatusName": "Delivered",
+          "lineUnitPrice": 498.9,
+          "commission": 13,
+          "cancelledBy": "",
+          "cancelReason": "",
+          "cancelReasonCode": 0
+        }
+      ],
+      "orderDate": 1762253333685,
+      "identityNumber": "11111111111",
+      "currencyCode": "TRY",
+      "status": "Delivered",
+      "shipmentPackageStatus": "Delivered",
+      "packageTotalPrice": 498.9,
+      "lastModifiedDate": 1762865408581,
+      "createdBy": "order-creation",
+      "originPackageIds": null
+    }
+  ]
+}

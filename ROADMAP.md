@@ -286,14 +286,14 @@ docs/
 
 ### Faz 1 — Proje iskeleti, kimlik doğrulama, tenant yapısı
 
-- [~] Monorepo kurulumu, lint, format, tip kontrolü, CI (her PR'da test + tip kontrolü). _(CI eksik.)_
-- [~] Ortam değişkenleri şeması (Zod ile doğrulanan `.env`). `.env.example` dosyası. _(.env.example var; Zod şeması API ile gelecek.)_
+- [x] Monorepo kurulumu, lint, format, tip kontrolü, CI (her PR'da test + tip kontrolü). _(GitHub Actions: format, lint, typecheck, test + Redis servisi.)_
+- [x] Ortam değişkenleri şeması (Zod ile doğrulanan `.env`). `.env.example` dosyası. _(`@trendy/shared` → `loadEnv`.)_
 - [x] PostgreSQL + Redis için docker-compose (lokal geliştirme).
-- [ ] Kullanıcı kaydı/girişi (e-posta + şifre; oturum veya JWT). Şifre hash'i argon2 veya bcrypt.
-- [ ] Tenant oluşturma, kullanıcıyı tenant'a bağlama, rol yapısı (owner, staff).
-- [ ] Tenant izolasyon testleri: bir tenant'ın başka bir tenant'ın verisine erişemediğini doğrulayan otomatik testler.
-- [ ] Gizli bilgi şifreleme yardımcı fonksiyonu (AES-256-GCM; anahtar ortam değişkeninden veya KMS'ten). Anahtar rotasyonu için sürüm alanı.
-- [ ] Yapılandırılmış loglama. Log'larda `authorization`, `apiKey`, `apiSecret` alanlarını otomatik maskeleyen redaction.
+- [x] Kullanıcı kaydı/girişi (e-posta + şifre; oturum veya JWT). Şifre hash'i argon2 veya bcrypt. _(`apps/api`: Fastify, argon2id, sunucu tarafı oturum + HttpOnly cookie, giriş denemesi sınırı, şifre değişince tüm oturumlar kapanır.)_
+- [~] Tenant oluşturma, kullanıcıyı tenant'a bağlama, rol yapısı (owner, staff). _(Kayıtta tenant + owner üyeliği oluşuyor, mağazalar arası geçiş ve rol kontrolü var. Personel davet akışı eksik.)_
+- [x] Tenant izolasyon testleri: bir tenant'ın başka bir tenant'ın verisine erişemediğini doğrulayan otomatik testler. _(`packages/db`: RLS + bileşik FK; okuma, güncelleme, silme, başka tenant adına ekleme, kayıt taşıma ve çapraz bağlama senaryoları.)_
+- [x] Gizli bilgi şifreleme yardımcı fonksiyonu (AES-256-GCM; anahtar ortam değişkeninden veya KMS'ten). Anahtar rotasyonu için sürüm alanı. _(`createSecretBox`; AAD ile tenant bağlamına bağlı.)_
+- [x] Yapılandırılmış loglama. Log'larda `authorization`, `apiKey`, `apiSecret` alanlarını otomatik maskeleyen redaction. _(`createLogger`, pino.)_
 
 **Kabul kriterleri:** Kullanıcı kayıt olup giriş yapabiliyor, CI yeşil, tenant izolasyon testleri geçiyor.
 
@@ -303,10 +303,10 @@ docs/
 
 **Hedef:** Trendyol'a giden **tek** kapı. Tüm limit, retry ve hata mantığı burada.
 
-- [ ] Changelog'u kontrol et. Bölüm 2'de değişen bir şey varsa bu dosyayı güncelle.
+- [x] Changelog'u kontrol et. Bölüm 2'de değişen bir şey varsa bu dosyayı güncelle. _(28.09.2026: stok/fiyat ve ürün filtreleme servislerini etkileyen değişiklik yok; bulgular `docs/TRENDYOL_NOTES.md`.)_
 - [x] Base URL ortama göre seçilir (stage/prod). Tenant bazında ayarlanır.
 - [x] Her isteğe Basic Auth ve `User-Agent: "{sellerId} - {FIRMA_ADI}"` header'ı eklenir. Firma adı ≤30 karakter ve alfanümerik olacak şekilde doğrulanır.
-- [~] _(Bellek içi kayan pencere uygulaması hazır; Redis uygulaması worker ile gelecek. Barkod limiti sabiti tanımlı, senkron job'unda uygulanacak.)_ **Rate limiter** (Redis tabanlı, tenant+grup anahtarlı token bucket):
+- [~] _(Bellek içi ve Redis (Lua, atomik) kayan pencere uygulamaları hazır. Barkod limiti sabiti tanımlı, senkron job'unda uygulanacak.)_ **Rate limiter** (Redis tabanlı, tenant+grup anahtarlı token bucket):
   - Endpoint başına 50 istek / 10 sn.
   - Grup başına dakikalık limit (Read / Write / Inventory&Price / Orders). Değer tenant'ın `listing_limit_tier` ayarından okunur.
   - Barkod başına dakikada ≤30 fiyat güncellemesi.
@@ -317,20 +317,20 @@ docs/
   - 400/401/403/404 → retry yok. Hata job log'a açıklamasıyla yazılır.
 - [x] Hata sınıfları: `TrendyolAuthError`, `TrendyolRateLimitError`, `TrendyolValidationError`, `TrendyolDeprecatedEndpointError`, `TrendyolServerError`.
 - [x] İstek/yanıt loglama (gövde kısaltılmış, gizli bilgiler maskeli), süre ölçümü.
-- [ ] Endpoint fonksiyonları (tipli). Tipler **dokümandaki OpenAPI'den** türetilir, elle uydurulmaz:
+- [~] Endpoint fonksiyonları (tipli). Tipler **dokümandaki OpenAPI'den** türetilir, elle uydurulmaz: _(Resmi doküman kopyaları `docs/trendyol-api/` altında. Senkron dilimi için gerekenler tamam.)_
   - [ ] `getBrands`, `getBrandsByName`
   - [ ] `getCategoryTree`
   - [ ] `getCategoryAttributesV2`, `getCategoryAttributeValuesV2`
   - [ ] `createProductsV2`
   - [ ] `updateUnapprovedProducts`, `updateApprovedContent`, `updateApprovedVariants`, `updateDeliveryInfo`
-  - [ ] `updatePriceAndInventory`
-  - [ ] `getBatchRequestResult`
-  - [ ] `filterApprovedProducts`, `filterUnapprovedProducts`, `getProductBase`
+  - [x] `updatePriceAndInventory`
+  - [x] `getBatchRequestResult` _(stok/fiyat batch'inde batch status dönmediği için `isBatchComplete` öğe durumlarına bakar)_
+  - [x] `filterApprovedProducts`, `filterUnapprovedProducts`, `getProductBase` _(+ `filterApprovedProductsInventoryAndPrice`, `paginate` ile 10.000 sonrası `nextPageToken`)_
   - [ ] `getSuppliersAddresses`, `getCargoProviders`, `getOriginValues`
   - [ ] `getShipmentPackagesStream`, `getShipmentPackagesV2`
   - [ ] Webhook: `createWebhook`, `listWebhooks`, `updateWebhook`, `deleteWebhook`, `activate`, `deactivate`
-- [ ] **Kimlik doğrulama testi:** Tenant API bilgilerini girdiğinde hafif bir okuma çağrısı yapılır, 401/403 ayrıştırılır, sonuç `verified_at` alanına yazılır. Hangi endpoint'in kullanılacağı `docs/DECISIONS.md`'ye yazılır.
-- [ ] Mock sunucu: Tüm endpoint'ler için örnek yanıtlar (`fixtures/trendyol/`). 429, 401, 5xx ve 426 senaryoları dahil.
+- [x] **Kimlik doğrulama testi:** Tenant API bilgilerini girdiğinde hafif bir okuma çağrısı yapılır, 401/403 ayrıştırılır, sonuç `verified_at` alanına yazılır. Hangi endpoint'in kullanılacağı `docs/DECISIONS.md`'ye yazılır. _(`POST /trendyol/credentials/:env/verify`)_
+- [~] Mock sunucu: Tüm endpoint'ler için örnek yanıtlar (`fixtures/trendyol/`). 429, 401, 5xx ve 426 senaryoları dahil. _(Yazılan endpoint'ler için doküman örneklerinden fixture'lar; hata senaryoları istemci testlerinde.)_
 - [ ] Stage ortamında en az bir gerçek okuma çağrısı yapılır, Basic Auth sırası teyit edilir ve `TRENDYOL_NOTES.md`'ye yazılır.
 
 **Kabul kriterleri:** İstemci birim testleri mock ile geçiyor, rate limiter yük testinde limitleri aşmıyor, stage'de auth doğrulandı.
@@ -356,15 +356,15 @@ docs/
 
 **Hedef:** Büyük ve formatı birbirinden farklı XML'leri güvenle okumak.
 
-- [ ] Tedarikçi ekleme: ad, feed URL, opsiyonel Basic Auth veya query token, çekim sıklığı.
+- [x] Tedarikçi ekleme: ad, feed URL, opsiyonel Basic Auth veya query token, çekim sıklığı. _(API: `/suppliers`; Basic Auth şifreli. Query token URL içinde verilebilir. Çekim aralığı en az 15 dk.)_
 - [x] İndirme: zaman aşımı, maksimum boyut sınırı, gzip desteği, HTTP ETag/Last-Modified ile gereksiz indirmeyi önleme (sunucu destekliyorsa).
 - [x] **Güvenlik:** SSRF koruması (özel/iç IP aralıklarına istek yasak, yalnızca http/https), XXE koruması (harici entity çözümleme kapalı), "billion laughs" türü entity patlamalarına karşı koruma.
 - [x] Karakter kodlaması: XML deklarasyonundan oku. Yoksa veya hatalıysa kullanıcının seçtiği kodlamayı uygula (UTF-8, ISO-8859-9, Windows-1254 seçenekleri).
 - [x] **Streaming** ayrıştırma: dosya belleğe tamamen alınmaz. Tekrarlayan "ürün düğümü" yolu (ör. `/Urunler/Urun`) kullanıcı tarafından seçilir veya otomatik önerilir.
-- [~] Her ürün düğümü JSON'a çevrilip `supplier_products.raw`'a yazılır. İçerik hash'i ile değişmeyen kayıtlar atlanır. _(JSON dönüşümü ve hash hazır; DB yazımı worker ile gelecek.)_
-- [ ] **Kaybolan ürünler:** Feed'de artık bulunmayan ürünler için yapılandırılabilir politika (varsayılan: stok = 0).
-- [~] _(Kontrol fonksiyonu `checkFeedShrink` hazır; worker'a bağlanıp uyarı ekranı yapılacak.)_ **Güvenlik freni:** Yeni feed önceki çekime göre ürünlerin büyük bir kısmını (ör. %50'den fazlasını) kaybetmişse otomatik stok sıfırlama **durdurulur** ve kullanıcıya uyarı gösterilir. (Bozuk veya boş gelen feed tüm mağazayı kapatmasın.)
-- [ ] Önizleme: İlk N ürünü ağaç görünümünde gösteren API ucu (eşleştirme ekranı için).
+- [x] Her ürün düğümü JSON'a çevrilip `supplier_products.raw`'a yazılır. İçerik hash'i ile değişmeyen kayıtlar atlanır. _(`apps/worker`: kimlik alanına (`externalIdPath`) göre gruplar hâlinde upsert; yeni/değişen/değişmeyen sayıları loglanıyor. Kimliksiz ve tekrarlanan ürünler sayılıp atlanıyor.)_
+- [~] **Kaybolan ürünler:** Feed'de artık bulunmayan ürünler için yapılandırılabilir politika (varsayılan: stok = 0). _(Kaybolanlar `missing_since` ile işaretleniyor, geri gelince işaret kalkıyor. Stok = 0 etkisi senkron job'unda (Faz 9) uygulanacak.)_
+- [x] _(Worker'a bağlı: fren devredeyse kayıp işaretlenmez, referans ürün sayısı korunur, işlem loguna `shrinkBlocked` yazılır; panel uyarı gösterir.)_ **Güvenlik freni:** Yeni feed önceki çekime göre ürünlerin büyük bir kısmını (ör. %50'den fazlasını) kaybetmişse otomatik stok sıfırlama **durdurulur** ve kullanıcıya uyarı gösterilir. (Bozuk veya boş gelen feed tüm mağazayı kapatmasın.)
+- [x] Önizleme: İlk N ürünü ağaç görünümünde gösteren API ucu (eşleştirme ekranı için). _(`POST /suppliers/detect`: ürün düğümü yolu + kimlik alanı önerisi + örnek ürünler; `GET /suppliers/:id/products`: sayfalı ham ürünler.)_
 - [~] _(Bozuk XML ve 100.000 ürünlük sentetik test geçiyor; gerçek XML örnekleri bekleniyor.)_ Testler: Faz 0'da toplanan 3 gerçek XML + bozuk XML + çok büyük sentetik XML (ör. 100.000 ürün) ile bellek kullanımı testi.
 
 **Kabul kriterleri:** 100.000 ürünlük XML sabit bellek kullanımıyla işleniyor, 3 gerçek feed doğru okunuyor, güvenlik testleri geçiyor.
@@ -375,16 +375,16 @@ docs/
 
 **Hedef:** Her tedarikçinin farklı yapısını tek bir kanonik ürün modeline çevirmek.
 
-- [ ] Kanonik alanlar: external_id, product_main_id (model kodu), barcode, stock_code, title, description, brand_name, source_category, cost_price, currency, stock, vat_rate, images[], variant özellikleri (renk, beden vb.), desi, origin.
-- [ ] Eşleştirme ekranı: XML önizlemesinden alan seçip kanonik alana bağlama. Sabit değer atama (ör. "tüm ürünlerde KDV = 20").
-- [ ] Dönüşümler (transform): trim, büyük/küçük harf, bul-değiştir, regex çıkarma, sayı ayrıştırma (Türkçe ondalık virgül dahil), para birimi çevirme (sabit kur veya manuel girilen kur), HTML temizleme.
-- [ ] **Varyant yapısı tespiti.** Tedarikçiler genellikle iki şekilde gönderir; ikisi de desteklenmeli:
+- [x] Kanonik alanlar: external_id, product_main_id (model kodu), barcode, stock_code, title, description, brand_name, source_category, cost_price, currency, stock, vat_rate, images[], variant özellikleri (renk, beden vb.), desi, origin. _(`@trendy/xml-ingest` `mapItem`, `MappingConfig`)_
+- [~] Eşleştirme ekranı: XML önizlemesinden alan seçip kanonik alana bağlama. Sabit değer atama (ör. "tüm ürünlerde KDV = 20"). _(API hazır: `PUT /suppliers/:id/mapping`, kaydetmeden `POST .../mapping/preview`. Panel ekranı bekliyor.)_
+- [~] Dönüşümler (transform): trim, büyük/küçük harf, bul-değiştir, regex çıkarma, sayı ayrıştırma (Türkçe ondalık virgül dahil), para birimi çevirme (sabit kur veya manuel girilen kur), HTML temizleme. _(trim, büyük/küçük harf (Türkçe), bul-değiştir, böl-al, değer eşleme, ön ek, varsayılan, HTML temizleme, TR sayı ayrıştırma hazır. Regex bilinçli olarak yok (ReDoS, DECISIONS). Kur çevirimi fiyat motorunda (`fxRate`); kur girişi senkronla gelecek.)_
+- [x] **Varyant yapısı tespiti.** Tedarikçiler genellikle iki şekilde gönderir; ikisi de desteklenmeli: _(`variantMode: flat | nested`; seçim kullanıcıda, önizleme ile doğrulanır.)_
   - (a) Her varyant ayrı düğümdür, ortak bir model kodu vardır.
   - (b) Tek ürün düğümünün altında varyant listesi bulunur.
 - [x] **Barkod normalizasyonu:** Boşlukları kaldır. Trendyol kuralına göre yalnızca harf, rakam, `.`, `-`, `_` kalsın. Maksimum 40 karakter. Geçersiz olanları raporla.
   - ⚠️ DOĞRULA: Barkod stratejisi (tedarikçinin EAN barkodunu mu kullanmalı, yoksa satıcıya özel ön ekli barkod mu üretmeli) Trendyol katalog eşleşmesi ve aynı barkodu satan başka satıcılar açısından sonuç doğurabilir. Karar vermeden önce Trendyol dokümanını ve destek ekibini kontrol et.
-- [ ] `title` 100 karakter, `description` 30.000 karakter, renk 50 karakter sınırları için kırpma ve uyarı.
-- [ ] Doğrulama raporu: Her ürün için "Trendyol'a gönderilebilir mi?" durumu ve eksik alan listesi.
+- [x] `title` 100 karakter, `description` 30.000 karakter, renk 50 karakter sınırları için kırpma ve uyarı.
+- [x] Doğrulama raporu: Her ürün için "Trendyol'a gönderilebilir mi?" durumu ve eksik alan listesi. _(Ürün bazında `normalize_issues`; `GET /suppliers/:id/report` sorun dağılımı; önizlemede `createMissing`.)_
 
 **Kabul kriterleri:** 3 gerçek feed için eşleştirme yapılabiliyor, kanonik ürünler ve varyantlar doğru gruplanıyor, doğrulama raporu eksikleri doğru gösteriyor.
 
@@ -419,13 +419,14 @@ docs/
 - [x] Hesaplama adımları (sıra sabit ve test edilmiş olmalı): maliyet → döviz çevirimi → çarpan (ör. ×1,35) → sabit ekleme (ör. +25 TL kargo payı) → yuvarlama (ör. ,90 veya ,99) → min/max sınırlar.
 - [ ] **KDV yaklaşımı** açıkça seçilir ve ekranda gösterilir: Tedarikçi fiyatı KDV dahil mi, hariç mi? Trendyol `salePrice` değerinin KDV dahil mi hariç mi yorumlandığını dokümandan doğrula. (⚠️ DOĞRULA)
 - [x] `listPrice` kuralı: `listPrice = salePrice` veya `salePrice × katsayı`. Her durumda `listPrice ≥ salePrice` garanti edilir.
-- [~] Komisyon tahmini: Kullanıcı kategori bazında beklenen komisyon oranını girer (MVP'de API'den önceden alınan bir komisyon tablosu kullanılmıyor). Motor minimum kâr marjını buna göre korur. Siparişlerdeki `commission` alanı ile gerçekleşen komisyon ileride karşılaştırılabilir. _(Motor destekliyor; kategori bazlı giriş ekranı yok.)_
+- [x] Komisyon tahmini: Kullanıcı kategori bazında beklenen komisyon oranını girer (MVP'de API'den önceden alınan bir komisyon tablosu kullanılmıyor). Motor minimum kâr marjını buna göre korur. Siparişlerdeki `commission` alanı ile gerçekleşen komisyon ileride karşılaştırılabilir. _(Kategori kapsamlı kurala komisyon oranı ve asgari kâr girilebiliyor: Fiyat Kuralları ekranı.)_
 - [x] **Güvenlik sınırları (guardrails):**
-  - Tek seferde fiyat değişimi %X'ten (ör. %30) fazlaysa otomatik gönderme, **onay kuyruğuna** al.
+  - Tek seferde fiyat değişimi %X'ten (ör. %30) fazlaysa otomatik gönderme, **onay kuyruğuna** al. _(Onay kuyruğu: `price_reviews`; `POST /trendyol/price-reviews/:id/approve` onaylanan fiyatı sonraki senkronda gönderir.)_
   - Maliyetin altında satış asla otomatik gönderilmez.
   - Sıfır, negatif veya NaN fiyat hiçbir koşulda gönderilmez.
 - [ ] Simülasyon ekranı: "Bu kural uygulanırsa 1.240 ürünün fiyatı değişir; en büyük 10 değişiklik şunlar."
 - [x] Kapsamlı birim testleri (tablo tabanlı testler, sınır değerler, yuvarlama durumları).
+- [x] Kural yönetimi: `GET/POST/PUT/DELETE /pricing-rules` ve panelde **Fiyat Kuralları** ekranı; kaydetmeden örnek hesap (`POST /pricing-rules/preview`, senkronla aynı motor). Kural değişince senkron tetiklenir.
 
 **Kabul kriterleri:** Birim test kapsamı yüksek (paket için ≥%95 hedef), guardrail testleri geçiyor, simülasyon ekranı çalışıyor.
 
@@ -441,12 +442,12 @@ docs/
   - Aynı görseli tekrar işlememek için içerik hash'i ile önbellek.
 - [ ] Gruplama: En fazla 1.000 item/istek. Aynı `productMainId`'nin varyantları aynı istekte gönderilir.
 - [ ] Gönderim job'u Write grubu rate limiter'ından geçer. `batchRequestId` `ty_batches`'e kaydedilir.
-- [ ] **Batch sonuç izleme job'u:** Artan aralıklarla sorgular. Sonuç 4 saat içinde alınmalıdır. Item bazında başarı/hata `channel_listings`'e yazılır.
-- [ ] **Onay takibi:** Batch başarılı olsa bile ürün onay sürecine girer. Onaysız ürün filtreleme servisi ile periyodik kontrol edilir: bekleyen / onaylı / reddedildi + red sebepleri.
+- [x] **Batch sonuç izleme job'u:** Artan aralıklarla sorgular. Sonuç 4 saat içinde alınmalıdır. Item bazında başarı/hata `channel_listings`'e yazılır. _(Stok/fiyat batch'leri için: dakikada bir, 4 saati geçen süresi dolmuş sayılır; başarısızlar yeniden gönderilir.)_
+- [~] **Onay takibi:** Batch başarılı olsa bile ürün onay sürecine girer. Onaysız ürün filtreleme servisi ile periyodik kontrol edilir: bekleyen / onaylı / reddedildi + red sebepleri. _(Günlük içe aktarma onaysız ürünleri bekleyen/reddedildi + red sebepleriyle `channel_listings`'e yazar; yeniden gönderme akışı Faz 8 ile.)_
 - [ ] Reddedilen ürünler için panelde "sebep + düzelt + yeniden gönder" akışı. Onaysız ürünler **onaysız güncelleme** servisiyle düzeltilir.
 - [ ] Onaylı ürünlerde içerik değişikliği (başlık, açıklama, görsel) için content/variant güncelleme servisleri. Attribute güncellenirken **tüm** attribute'ların gönderilmesi gerektiğini unutma (dokümanda belirtilmiş).
 - [ ] Idempotency: Aynı ürün iki kez yaratılmaya çalışılmaz. Gönderim öncesi `channel_listings` durumu kontrol edilir.
-- [ ] İlk kurulum için **mevcut Trendyol ürünlerini içe aktarma:** Onaylı ürün filtreleme ile satıcının Trendyol'daki mevcut ürünleri çekilir ve barkod üzerinden kanonik varyantlarla eşleştirilir. Böylece zaten var olan ürünler yeniden yaratılmaya çalışılmaz.
+- [x] İlk kurulum için **mevcut Trendyol ürünlerini içe aktarma:** Onaylı ürün filtreleme ile satıcının Trendyol'daki mevcut ürünleri çekilir ve barkod üzerinden kanonik varyantlarla eşleştirilir. Böylece zaten var olan ürünler yeniden yaratılmaya çalışılmaz. _(`ty_import` job'u: onaylı + stok/fiyat + onaysız taraması; katalogda olmayan barkodlar yönetilmeyen kayıt olarak açılır; tam taramada görülmeyenler `unknown`.)_
 
 **Kabul kriterleri:** Stage'de en az 50 ürün (varyantlılar dahil) yaratılıp onay durumu izlenebiliyor, reddedilen ürün düzeltilip tekrar gönderilebiliyor.
 
@@ -454,15 +455,15 @@ docs/
 
 ### Faz 9 — Stok ve fiyat senkronu
 
-- [ ] Senkron döngüsü: XML çekimi → kanonik güncelleme → hedef stok/fiyat hesaplama → **diff** (`channel_listings.last_sent_*` ile karşılaştırma).
-- [ ] Yalnızca **onaylı** ürünler `updatePriceAndInventory` ile güncellenir. Onaysızlar için stok/fiyat onaysız güncelleme servisinden gider veya kuyrukta bekletilir (hangisi olacağı dokümandan doğrulanıp `DECISIONS.md`'ye yazılır).
-- [ ] 1.000 item/istek, stok ≤ 20.000 (üst sınır aşılırsa 20.000 gönderilir ve not düşülür).
-- [ ] 15 dakika içinde aynı isteği tekrar göndermeme kuralı: Diff yaklaşımı ve job deduplication ile garanti altına alınır.
-- [ ] Barkod başına dakikada ≤30 fiyat güncellemesi kuralı rate limiter'da uygulanır.
-- [ ] **Güvenlik stoğu (opsiyonel):** Tedarikçi stoğu X'in altındaysa Trendyol'a 0 gönder (tedarik edememe riskini azaltır).
-- [ ] Batch sonuçları izlenir. Başarısız item'lar bir sonraki döngüde yeniden denenir.
-- [ ] Senkron sıklığı tenant planına göre ayarlanabilir. Varsayılan değer rate limit hesabıyla belirlenir ve `DECISIONS.md`'ye yazılır.
-- [ ] **Acil durdurma:** Tenant veya tedarikçi bazında senkronu tek tıkla durdurma düğmesi.
+- [x] Senkron döngüsü: XML çekimi → kanonik güncelleme → hedef stok/fiyat hesaplama → **diff** (`channel_listings.last_sent_*` ile karşılaştırma). _(`ty_sync`: `planSync` + `recordSentBatch`; feed değişince hemen, ayrıca 15 dk'da bir.)_
+- [x] Yalnızca **onaylı** ürünler `updatePriceAndInventory` ile güncellenir. Onaysızlar için stok/fiyat onaysız güncelleme servisinden gider veya kuyrukta bekletilir (hangisi olacağı dokümandan doğrulanıp `DECISIONS.md`'ye yazılır). _(Onaysız ürün güncelleme servisinde stok/fiyat alanı yok (DOĞRULA #6 kapandı): onaysızlar atlanır, onaylanınca senkron başlar.)_
+- [x] 1.000 item/istek, stok ≤ 20.000 (üst sınır aşılırsa 20.000 gönderilir ve not düşülür).
+- [x] 15 dakika içinde aynı isteği tekrar göndermeme kuralı: Diff yaklaşımı ve job deduplication ile garanti altına alınır. _(Diff + kuyrukta tenant başına tek senkron işi.)_
+- [x] Barkod başına dakikada ≤30 fiyat güncellemesi kuralı rate limiter'da uygulanır. _(Her barkod bir senkron turunda en fazla bir kez gönderilir; tur aralığı ≥ 1 dk olduğundan sınır aşılamaz.)_
+- [x] **Güvenlik stoğu (opsiyonel):** Tedarikçi stoğu X'in altındaysa Trendyol'a 0 gönder (tedarik edememe riskini azaltır). _(`tenants.safety_stock`)_
+- [x] Batch sonuçları izlenir. Başarısız item'lar bir sonraki döngüde yeniden denenir.
+- [~] Senkron sıklığı tenant planına göre ayarlanabilir. Varsayılan değer rate limit hesabıyla belirlenir ve `DECISIONS.md`'ye yazılır. _(Varsayılan 15 dk + feed değişiminde anında; plan bazlı ayar ekranı yok.)_
+- [x] **Acil durdurma:** Tenant veya tedarikçi bazında senkronu tek tıkla durdurma düğmesi. _(`PATCH /settings { syncPaused }` ve tedarikçi `syncPaused`; duraklatılmışken Trendyol'a hiç istek gitmez.)_
 
 **Kabul kriterleri:** 10.000 varyantlık sentetik senaryoda limitler aşılmadan tam senkron tamamlanıyor, diff sayesinde değişmeyen ürün için istek gönderilmiyor.
 
@@ -470,22 +471,22 @@ docs/
 
 ### Faz 10 — Sipariş çekme
 
-- [ ] `getShipmentPackagesStream` ile polling job'u:
+- [x] `getShipmentPackagesStream` ile polling job'u: _(`ty_orders`: 5 dk'da bir; imleçten 4 saat geriden, ilk çekimde son 14 gün; imleç yalnızca tam başarıda ilerler.)_
   - Her tenant için `sync_cursors.last_synced_until` baz alınır. Güvenlik payı için pencere biraz geriden başlatılır (overlap, ör. 10 dakika).
-  - Pencere ≤14 gün, tarih parametreleri **GMT+3 milisaniye**.
+  - Pencere ≤14 gün, tarih parametreleri **GMT+3 milisaniye**. ⚠️ _Güncel doküman yalnızca "Unix timestamp milisaniye" diyor; GMT+3 ifadesi yok. Unix ms kullanılıyor, olası kaymaya karşı 4 saat örtüşme; ilk canlı okumada teyit edilecek (TRENDYOL_NOTES)._
   - `hasMore`/`nextCursor` ile tüm sayfalar gezilir. Filtre aynı akış içinde değiştirilmez.
   - İstekler arası ≥5 sn. Tenant seviyesine göre dakikalık limite uyulur.
-- [ ] **Upsert anahtarı:** `shipmentPackageId`. Statü değişiklikleri `lastModifiedDate` ile güncellenir. Daha eski bir veri daha yenisinin üzerine yazılmaz.
-- [ ] `createdBy` = split / cancel / transfer ve `originPackageIds` alanları ile paket bölünmesi ve kısmi iptaller doğru modellenir.
-- [ ] **Backfill aracı:** Admin, bir tenant için belirli bir tarih aralığını (≤ son 3 ay) yeniden çekebilir. Trendyol'un kesinti duyurularında kullanılır.
-- [ ] **Webhook (opsiyonel hızlandırıcı):**
+- [x] **Upsert anahtarı:** `shipmentPackageId`. Statü değişiklikleri `lastModifiedDate` ile güncellenir. Daha eski bir veri daha yenisinin üzerine yazılmaz. _(Eşit zaman damgası idempotent günceller; eskisi `stale` sayılır.)_
+- [x] `createdBy` = split / cancel / transfer ve `originPackageIds` alanları ile paket bölünmesi ve kısmi iptaller doğru modellenir.
+- [x] **Backfill aracı:** Admin, bir tenant için belirli bir tarih aralığını (≤ son 3 ay) yeniden çekebilir. Trendyol'un kesinti duyurularında kullanılır. _(`POST /orders/backfill` (owner): aralık 14 günlük pencerelerle taranır, imleç değişmez.)_
+- [~] **Webhook (opsiyonel hızlandırıcı):** _(Alıcı hazır: `POST /hooks/o/:token` + `x-api-key` (sabit zamanlı karşılaştırma), zarf ve tek paket biçimi; `POST /settings/webhook` URL/anahtar üretir. Trendyol'a kayıt (createWebhook) ve pasif durum göstergesi henüz yok: dışarıdan erişilen adres (`PUBLIC_BASE_URL`) gerekiyor.)_
   - Tenant başına benzersiz, tahmin edilemez URL (URL'de "trendyol" kelimesi geçmemeli).
   - `x-api-key` doğrulaması (tenant başına ayrı anahtar).
   - Gelen veri polling ile aynı upsert fonksiyonundan geçer (idempotent).
   - Trendyol'un webhook'u pasife alma ihtimaline karşı panelde durum göstergesi ve "yeniden aktifleştir" aksiyonu.
   - Satıcı başına 15 webhook sınırı nedeniyle mevcut webhook'lar listelenir, kopya oluşturulmaz.
 - [ ] Sipariş geldiğinde stok etkisi: Dropshipping senaryosunda asıl kaynak tedarikçi stoğudur. Yine de bir sonraki XML çekimine kadar yerel stok düşürülerek Trendyol'a güncelleme gönderilebilir (opsiyonel, tenant ayarı).
-- [ ] Kişisel veri: Sipariş ham verisinde kişisel bilgiler bulunur. Saklama süresi politikası uygulanır; panelde yalnızca yetkili roller görür.
+- [x] Kişisel veri: Sipariş ham verisinde kişisel bilgiler bulunur. Saklama süresi politikası uygulanır; panelde yalnızca yetkili roller görür. _(T.C. kimlik no hiç saklanmaz; liste uçları kişisel veri döndürmez, adres yalnızca owner'a; saklama süresi dolan kapanmış siparişlerin kişisel verisi saatlik temizlikte silinir.)_
 
 **Kabul kriterleri:** Stage'de test siparişi oluşturulup (Test Siparişi Oluşturma servisi) sistemde görünüyor, statü güncellemeleri yansıyor, aynı sipariş iki kez kaydedilmiyor.
 
@@ -507,12 +508,12 @@ docs/
 
 ### Faz 12 — Operasyon, izleme, güvenilirlik
 
-- [ ] Sağlık kontrolü uçları (API, worker, Redis, DB).
+- [x] Sağlık kontrolü uçları (API, worker, Redis, DB). _(`/health` canlılık, `/health/ready` DB + Redis + worker sinyali; biri yoksa 503.)_
 - [ ] Kuyruk panosu (ör. Bull Board), yalnızca admin erişimli.
-- [ ] Alarm kuralları: Tenant bazında art arda başarısız senkron, 401 (API bilgisi değişmiş olabilir), 426 (kullanımdan kalkmış endpoint), anormal 429 oranı, sipariş çekiminde uzun süreli boşluk.
+- [~] Alarm kuralları: Tenant bazında art arda başarısız senkron, 401 (API bilgisi değişmiş olabilir), 426 (kullanımdan kalkmış endpoint), anormal 429 oranı, sipariş çekiminde uzun süreli boşluk. _(Hepsi `GET /alerts` ile panelde; ayrıca tedarikçi arızası, güvenlik freni, eksik yapılandırma/eşleştirme, kanal hataları, onay bekleyen fiyat. E-posta/bildirim gönderimi yok.)_
 - [ ] **Changelog izleyici:** Trendyol changelog sayfasını günlük çekip değişiklik olduğunda ekibe bildirim gönderen job.
 - [ ] Trendyol API durum sayfası (`/api-status`) kontrolü; kesinti varsa panelde bilgi bandı.
-- [ ] Veritabanı yedekleme ve geri yükleme testi.
+- [x] Veritabanı yedekleme ve geri yükleme testi. _(`deploy/backup.sh` / `restore.sh`; tam Docker kurulumunda denendi, RLS politikaları ve rol yetkileri geri geldi.)_
 - [ ] Gizli bilgi anahtarı rotasyonu prosedürü.
 
 **Kabul kriterleri:** Bir sahte 426 veya 401 senaryosunda alarm tetikleniyor, yedekten geri yükleme bir kez başarıyla denenmiş.
@@ -546,12 +547,12 @@ docs/
 
 ## 7. Güvenlik ve KVKK kontrol listesi
 
-- [ ] API key/secret veritabanında şifreli; uygulama belleğinde yalnızca kullanım anında çözülür.
+- [x] API key/secret veritabanında şifreli; uygulama belleğinde yalnızca kullanım anında çözülür.
 - [ ] Log'larda gizli bilgi ve kişisel veri maskeleme.
-- [ ] Tenant izolasyonu (uygulama + mümkünse RLS).
+- [x] Tenant izolasyonu (uygulama + mümkünse RLS).
 - [ ] XML indirmede SSRF ve XXE korumaları.
 - [ ] Webhook uç noktasında kimlik doğrulama ve gövde boyutu sınırı.
-- [ ] Sipariş kişisel verileri için saklama süresi ve silme politikası.
+- [x] Sipariş kişisel verileri için saklama süresi ve silme politikası. _(Kapanmış siparişlerde `order_pii_retention_days` (varsayılan 180, ayarlanabilir) sonra adres/iletişim/ad silinir; T.C. kimlik no hiç saklanmaz. Süre hukuki danışmanlıkla belirlenmeli.)_
 - [ ] Rol bazlı erişim (kişisel veri görüntüleme yetkisi).
 - [ ] KVKK: Aydınlatma metni, veri işleyen sözleşmesi, sunucu lokasyonu ve yurt dışına aktarım değerlendirmesi. (Hukuki danışmanlık — bu dosya hukuki tavsiye değildir.)
 
@@ -580,7 +581,7 @@ docs/
 3. Aracı entegratör olarak Trendyol'a başvuru/kayıt gerekip gerekmediği.
 4. Product V2 `attributes` içindeki doğru alan isimleri (`attributeValueId(s)`, `customAttributeValue` / `attributeValue`).
 5. `salePrice`/`listPrice` değerlerinin KDV dahil mi yorumlandığı.
-6. Onaysız ürünlerde stok/fiyat güncellemesinin hangi servisle yapılacağı.
+6. Onaysız ürünlerde stok/fiyat güncellemesinin hangi servisle yapılacağı. ✅ _Kapandı: onaysız güncelleme servisinde stok/fiyat alanı yok; onay beklenir._
 7. Satıcının listeleme limit seviyesinin API'den öğrenilip öğrenilemeyeceği.
 8. Barkod stratejisi (tedarikçi EAN'ı mı, satıcıya özel barkod mu).
 9. Marka yaratma servisinin onay süreci.

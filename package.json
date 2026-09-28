@@ -9,14 +9,17 @@
   "scripts": {
     "test": "vitest run",
     "coverage": "vitest run --coverage",
-    "typecheck": "tsc -b",
+    "typecheck": "tsc -b && pnpm --filter @trendy/web typecheck",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "e2e": "pnpm --filter @trendy/api e2e"
   },
   "devDependencies": {
+    "@next/eslint-plugin-next": "^16.3.6",
     "@types/node": "^24.19.0",
     "@vitest/coverage-v8": "^4.1.11",
     "eslint": "^10.11.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "prettier": "^3.9.9",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.70.1",

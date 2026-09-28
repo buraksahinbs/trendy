@@ -1,0 +1,137 @@
+# Trendy — tek sunucu kurulumu. Kullanım: deploy/install.sh (ayrıntı: docs/DEPLOY.md)
+#
+# Dışarıya yalnızca Caddy (80/443) açılır. PostgreSQL ve Redis yalnızca iç ağdadır.
+
+name: trendy
+
+x-app-env: &app-env
+  NODE_ENV: production
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  DATABASE_URL: postgres://trendy:${POSTGRES_PASSWORD}@postgres:5432/trendy
+  REDIS_URL: redis://redis:6379
+  SECRETS_ENCRYPTION_KEY: ${SECRETS_ENCRYPTION_KEY}
+  SECRETS_ENCRYPTION_KEY_VERSION: ${SECRETS_ENCRYPTION_KEY_VERSION:-1}
+  SECRETS_ENCRYPTION_PREVIOUS_KEYS: ${SECRETS_ENCRYPTION_PREVIOUS_KEYS:-}
+  TRENDYOL_INTEGRATOR_NAME: ${TRENDYOL_INTEGRATOR_NAME:-SelfIntegration}
+
+services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: trendy
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD .env içinde tanımlı olmalı}
+      POSTGRES_DB: trendy
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trendy -d trendy"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    shm_size: 256mb
+
+  redis:
+    image: redis:8
+    restart: unless-stopped
+    # BullMQ için: kalıcılık açık, bellek dolunca anahtar silinmez (iş kaybı olmasın).
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # Her başlatmada migration'ları uygular ve biter; API ve worker bundan sonra başlar.
+  migrate:
+    build: { context: .., target: server }
+    image: trendy-server:latest
+    command: ["packages/db/node_modules/.bin/tsx", "packages/db/src/migrate-cli.ts"]
+    environment:
+      <<: *app-env
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: "no"
+
+  api:
+    image: trendy-server:latest
+    restart: unless-stopped
+    command: ["apps/api/node_modules/.bin/tsx", "apps/api/src/server.ts"]
+    environment:
+      <<: *app-env
+      API_HOST: 0.0.0.0
+      API_PORT: "3000"
+      # İstekler Caddy üzerinden gelir; gerçek istemci IP'si X-Forwarded-For'dan okunur.
+      TRUST_PROXY: "true"
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-}
+      SESSION_TTL_HOURS: ${SESSION_TTL_HOURS:-168}
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  worker:
+    image: trendy-server:latest
+    restart: unless-stopped
+    command: ["apps/worker/node_modules/.bin/tsx", "apps/worker/src/main.ts"]
+    environment:
+      <<: *app-env
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+    stop_grace_period: 60s
+
+  web:
+    build: { context: .., target: web }
+    image: trendy-web:latest
+    restart: unless-stopped
+    depends_on:
+      api: { condition: service_healthy }
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3200/giris').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN:?DOMAIN .env içinde tanımlı olmalı}
+      ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL .env içinde tanımlı olmalı}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web: { condition: service_healthy }
+
+volumes:
+  pgdata:
+  redisdata:
+  caddy_data:
+  caddy_config:

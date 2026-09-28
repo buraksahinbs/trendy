@@ -1,2 +1,7 @@
 ROADMAP.md
 pnpm-lock.yaml
+.claude/
+docs/trendyol-api/
+packages/db/migrations/
+**/.next/
+**/next-env.d.ts

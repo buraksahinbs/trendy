@@ -1,0 +1,25 @@
+{
+  "name": "@trendy/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "tsx src/main.ts"
+  },
+  "dependencies": {
+    "@trendy/db": "workspace:*",
+    "@trendy/jobs": "workspace:*",
+    "@trendy/pricing": "workspace:*",
+    "@trendy/shared": "workspace:*",
+    "@trendy/trendyol-client": "workspace:*",
+    "@trendy/xml-ingest": "workspace:*",
+    "bullmq": "^6.3.9",
+    "ioredis": "^6.0.0",
+    "tsx": "^4.23.15"
+  },
+  "devDependencies": {
+    "drizzle-orm": "^0.45.3",
+    "iconv-lite": "^0.7.3"
+  }
+}

@@ -135,7 +135,24 @@ export class TrendyolClient {
 
       if (status >= 200 && status < 300) {
         this.logger.info({ ...logCtx, status, durationMs }, "trendyol isteği");
-        return (text ? JSON.parse(text) : undefined) as T;
+        if (!text) return undefined as T;
+        try {
+          return JSON.parse(text) as T;
+        } catch {
+          // Bakım sayfası vb. JSON olmayan 2xx yanıt: geçici sunucu sorunu gibi tekrar denenir.
+          this.logger.warn({ ...logCtx, status }, "trendyol yanıtı JSON değil");
+          if (serverRetries++ < maxServerRetries) {
+            await this.sleep(this.backoff(serverRetries));
+            continue;
+          }
+          throw new TrendyolServerError(
+            "Trendyol yanıtı okunamadı (JSON değil)",
+            status,
+            opts.method,
+            opts.path,
+            text.slice(0, BODY_LOG_LIMIT),
+          );
+        }
       }
 
       const snippet = text.slice(0, BODY_LOG_LIMIT);

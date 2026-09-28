@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: trendy
+          POSTGRES_PASSWORD: trendy
+          POSTGRES_DB: trendy
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U trendy" --health-interval 5s --health-timeout 3s --health-retries 10
+      redis:
+        image: redis:8
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgres://trendy:trendy@localhost:5432/trendy
+      REDIS_URL: redis://localhost:6379
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec prettier --check .
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - name: Uçtan uca test (sahte Trendyol + feed; API, worker, migration gerçek)
+        run: pnpm e2e
+      - name: Satıcı paneli derlemesi
+        run: pnpm --filter @trendy/web build
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+      - name: Şema ile migration'lar uyumlu mu
+        run: |
+          pnpm --filter @trendy/db exec drizzle-kit generate --name ci-check
+          git diff --exit-code --stat -- packages/db/migrations
+          test -z "$(git status --porcelain -- packages/db/migrations)"

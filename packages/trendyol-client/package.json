@@ -7,6 +7,10 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@trendy/shared": "workspace:*"
+    "@trendy/shared": "workspace:*",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "ioredis": "^6.0.0"
   }
 }
