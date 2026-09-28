@@ -512,7 +512,7 @@ docs/
 - [~] Alarm kuralları: Tenant bazında art arda başarısız senkron, 401 (API bilgisi değişmiş olabilir), 426 (kullanımdan kalkmış endpoint), anormal 429 oranı, sipariş çekiminde uzun süreli boşluk. _(Hepsi `GET /alerts` ile panelde; ayrıca tedarikçi arızası, güvenlik freni, eksik yapılandırma/eşleştirme, kanal hataları, onay bekleyen fiyat. E-posta/bildirim gönderimi yok.)_
 - [ ] **Changelog izleyici:** Trendyol changelog sayfasını günlük çekip değişiklik olduğunda ekibe bildirim gönderen job.
 - [ ] Trendyol API durum sayfası (`/api-status`) kontrolü; kesinti varsa panelde bilgi bandı.
-- [ ] Veritabanı yedekleme ve geri yükleme testi.
+- [x] Veritabanı yedekleme ve geri yükleme testi. _(`deploy/backup.sh` / `restore.sh`; tam Docker kurulumunda denendi, RLS politikaları ve rol yetkileri geri geldi.)_
 - [ ] Gizli bilgi anahtarı rotasyonu prosedürü.
 
 **Kabul kriterleri:** Bir sahte 426 veya 401 senaryosunda alarm tetikleniyor, yedekten geri yükleme bir kez başarıyla denenmiş.

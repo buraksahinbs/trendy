@@ -22,6 +22,7 @@ const app = await buildApp({
   logger,
   sessionTtlMs: env.SESSION_TTL_HOURS * 3_600_000,
   secureCookies: env.NODE_ENV === "production",
+  ...(env.TRUST_PROXY ? { trustProxy: env.TRUST_PROXY === "true" ? true : env.TRUST_PROXY } : {}),
 });
 
 const shutdown = async (signal: string) => {

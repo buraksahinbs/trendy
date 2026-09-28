@@ -21,6 +21,8 @@ export interface AppDeps {
   queue: JobQueue;
   /** Trendyol User-Agent'taki entegratör adı (`TRENDYOL_INTEGRATOR_NAME`). */
   integratorName: string;
+  /** Ters proxy güveni: `true` veya güvenilen proxy adresleri (Fastify `trustProxy`). */
+  trustProxy?: boolean | string;
   /** Hazırlık kontrolü için Redis (ping + worker heartbeat okuma). */
   redis?: { ping(): Promise<string>; get(key: string): Promise<string | null> };
   /** Dışarıdan erişilen API adresi (webhook URL'si için), ör. `https://api.ornek.com`. */
@@ -62,6 +64,9 @@ export async function buildApp(deps: AppDeps) {
   const app = Fastify({
     ...(deps.logger ? { loggerInstance: deps.logger } : { logger: false }),
     bodyLimit: 1024 * 1024,
+    // Ters proxy (Caddy) arkasında gerçek istemci IP'si X-Forwarded-For'dan okunur; aksi hâlde
+    // giriş denemesi sınırı tüm kullanıcılara ortak uygulanırdı.
+    ...(deps.trustProxy ? { trustProxy: deps.trustProxy } : {}),
   });
 
   app.decorate("deps", deps);

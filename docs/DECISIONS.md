@@ -165,3 +165,14 @@
 - KVKK: kapanmış siparişlerde (Delivered, Cancelled, Returned, UnSupplied) `order_pii_retention_days` gün sonra adres, iletişim ve müşteri adı silinir; sipariş, satır ve tutarlar korunur. Varsayılan 180 gün; hukuki danışmanlıkla belirlenmeli (ROADMAP §7).
 
 **Not:** Ham SQL'de tarih parametreleri ISO metin olarak geçirilir (postgres.js `Date` kabul etmiyor) ve enum dizileri `::text` ile çevrilir (aksi hâlde sürücü diziye çevirmiyor). İkisi de testlerle yakalandı.
+
+## 2026-09-28 — Canlı kurulum: Docker Compose + Caddy
+
+**Karar:** Tek VPS'e Docker Compose ile kurulum (`deploy/`, kılavuz `docs/DEPLOY.md`). Servisler: PostgreSQL 17, Redis 8 (`noeviction`, AOF), `migrate` (her başlatmada migration, sonra biter), API, worker, Next.js paneli (standalone) ve otomatik HTTPS için Caddy.
+**Ayrıntılar:**
+
+- Dışarıya yalnızca Caddy açılır (80/443): `/api/*` önek silinerek API'ye, `/hooks/*` ve `/health/ready` API'ye, gerisi panele gider. Veritabanı ve Redis yalnızca iç ağdadır.
+- API ve worker TypeScript'i `tsx` ile doğrudan çalıştırır (ayrı derleme adımı yok); bu yüzden `tsx` üretim bağımlılığıdır. İmaj yalnızca `--prod` bağımlılıklarla kurulur ve `node` kullanıcısıyla çalışır.
+- API ters proxy arkasında `TRUST_PROXY=true` ile çalışır (gerçek istemci IP'si rate limit ve loglar için).
+- `install.sh` rastgele veritabanı şifresi ve `SECRETS_ENCRYPTION_KEY` üretir; `deploy/.env` git'e girmez ve sunucu dışına yedeklenmelidir.
+- Yedek: günlük `pg_dump` (14 gün), geri yükleme onay ister. Yedekten dönüş tam kurulumda denendi.

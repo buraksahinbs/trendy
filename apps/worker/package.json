@@ -15,7 +15,8 @@
     "@trendy/trendyol-client": "workspace:*",
     "@trendy/xml-ingest": "workspace:*",
     "bullmq": "^6.3.9",
-    "ioredis": "^6.0.0"
+    "ioredis": "^6.0.0",
+    "tsx": "^4.23.15"
   },
   "devDependencies": {
     "drizzle-orm": "^0.45.3",

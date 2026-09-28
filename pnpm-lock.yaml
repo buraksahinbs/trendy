@@ -26,9 +26,6 @@ importers:
       prettier:
         specifier: ^3.9.9
         version: 3.9.9
-      tsx:
-        specifier: ^4.23.15
-        version: 4.23.15
       typescript:
         specifier: ~6.0.3
         version: 6.0.3
@@ -62,19 +59,21 @@ importers:
       '@trendy/xml-ingest':
         specifier: workspace:*
         version: link:../../packages/xml-ingest
+      drizzle-orm:
+        specifier: ^0.45.3
+        version: 0.45.3(postgres@3.4.9)
       fastify:
         specifier: ^5.12.5
         version: 5.12.5
       ioredis:
         specifier: ^6.0.0
         version: 6.0.0
+      tsx:
+        specifier: ^4.23.15
+        version: 4.23.15
       zod:
         specifier: ^4.6.5
         version: 4.6.5
-    devDependencies:
-      drizzle-orm:
-        specifier: ^0.45.3
-        version: 0.45.3(postgres@3.4.9)
 
   apps/web:
     dependencies:
@@ -172,6 +171,9 @@ importers:
       ioredis:
         specifier: ^6.0.0
         version: 6.0.0
+      tsx:
+        specifier: ^4.23.15
+        version: 4.23.15
     devDependencies:
       drizzle-orm:
         specifier: ^0.45.3
@@ -191,6 +193,9 @@ importers:
       postgres:
         specifier: ^3.4.9
         version: 3.4.9
+      tsx:
+        specifier: ^4.23.15
+        version: 4.23.15
     devDependencies:
       drizzle-kit:
         specifier: ^0.31.11

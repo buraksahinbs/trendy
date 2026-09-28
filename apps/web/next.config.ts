@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
 
 // Tarayıcı API'ye aynı origin üzerinden (/api/...) gider; cookie'ler bu sayede
@@ -5,6 +6,13 @@ import type { NextConfig } from "next";
 const apiUrl = (process.env.API_URL ?? "http://127.0.0.1:3000").replace(/\/+$/, "");
 
 const nextConfig: NextConfig = {
+  // Docker imajı için bağımsız (standalone) çıktı; monorepo kökünden dosya izlenir.
+  ...(process.env.NEXT_STANDALONE === "1"
+    ? {
+        output: "standalone" as const,
+        outputFileTracingRoot: fileURLToPath(new URL("../..", import.meta.url)),
+      }
+    : {}),
   reactStrictMode: true,
   poweredByHeader: false,
   async rewrites() {
