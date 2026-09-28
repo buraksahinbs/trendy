@@ -9,6 +9,7 @@ import { ZodError } from "zod";
 import { authRoutes } from "./routes/auth.js";
 import { alertRoutes, healthRoutes } from "./routes/ops.js";
 import { orderRoutes, orderWebhookReceiver, orderWebhookSettingsRoutes } from "./routes/orders.js";
+import { pricingRoutes } from "./routes/pricing.js";
 import { settingsRoutes } from "./routes/settings.js";
 import { jobRoutes, supplierRoutes } from "./routes/suppliers.js";
 import { trendyolRoutes } from "./routes/trendyol.js";
@@ -119,6 +120,7 @@ export async function buildApp(deps: AppDeps) {
   await app.register(supplierRoutes, { prefix: "/suppliers" });
   await app.register(jobRoutes, { prefix: "/jobs" });
   await app.register(settingsRoutes, { prefix: "/settings" });
+  await app.register(pricingRoutes, { prefix: "/pricing-rules" });
   await app.register(orderRoutes, { prefix: "/orders" });
   await app.register(orderWebhookSettingsRoutes, { prefix: "/settings/webhook" });
   await app.register(orderWebhookReceiver, { prefix: "/hooks" });

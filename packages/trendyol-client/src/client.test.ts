@@ -13,7 +13,7 @@ import {
 import { InMemoryRateLimiter } from "./rate-limiter.js";
 
 /** Mock Trendyol: her path için sıradaki yanıtlar kuyruktan verilir. */
-type Reply = { status: number; body?: unknown; headers?: Record<string, string> };
+type Reply = { status: number; body?: unknown; raw?: string; headers?: Record<string, string> };
 const replies = new Map<string, Reply[]>();
 const received: { method: string; url: string; headers: http.IncomingHttpHeaders; body: string }[] =
   [];
@@ -30,7 +30,7 @@ beforeAll(async () => {
       const path = req.url!.split("?")[0]!;
       const reply = replies.get(path)?.shift() ?? { status: 200, body: { ok: true } };
       res.writeHead(reply.status, { "content-type": "application/json", ...reply.headers });
-      res.end(reply.body === undefined ? "" : JSON.stringify(reply.body));
+      res.end(reply.raw ?? (reply.body === undefined ? "" : JSON.stringify(reply.body)));
     });
   });
   await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
@@ -134,6 +134,14 @@ describe("TrendyolClient", () => {
     await expect(client().request(get)).rejects.toBeInstanceOf(TrendyolServerError);
     expect(received).toHaveLength(4);
     expect(slept).toEqual([1000, 2000, 4000]);
+  });
+
+  it("JSON olmayan 2xx yanıt tekrar denenir, sürerse TrendyolServerError", async () => {
+    const html = { status: 200, raw: "<html>bakım</html>" };
+    replies.set("/x", [html, { status: 200, body: "ok" }]);
+    expect(await client().request(get)).toBe("ok");
+    replies.set("/x", [html, html, html, html]);
+    await expect(client().request(get)).rejects.toBeInstanceOf(TrendyolServerError);
   });
 
   it("5xx sonrası başarı", async () => {

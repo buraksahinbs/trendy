@@ -82,6 +82,8 @@ export function ChangePasswordForm() {
       </CardHeader>
       <Form {...form}>
         <form
+          // Sayfa hazır olmadan gönderilirse şifre adres çubuğuna (GET) düşmesin.
+          method="post"
           onSubmit={form.handleSubmit((v) => change.mutate(v))}
           noValidate
           className="grid gap-5"

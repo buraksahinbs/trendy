@@ -7,7 +7,7 @@ import {
   type TrendyolPayload,
   type XmlFetchPayload,
 } from "@trendy/jobs";
-import { createLogger, loadEnv, secretBoxFromEnv } from "@trendy/shared";
+import { createLogger, installLifecycle, loadEnv, secretBoxFromEnv } from "@trendy/shared";
 import {
   RedisRateLimiter,
   TrendyolAuthError,
@@ -31,13 +31,19 @@ const connection = new Redis(env.REDIS_URL, { maxRetriesPerRequest: null });
 const limiterRedis = new Redis(env.REDIS_URL, { maxRetriesPerRequest: 2 });
 const queue = createJobQueue(connection);
 const secretBox = secretBoxFromEnv(env);
-const fetchDeps = { db: database.db, secretBox, logger };
+const fetchDeps = {
+  db: database.db,
+  secretBox,
+  logger,
+  ...(env.FEED_ALLOW_PRIVATE_NETWORK ? { downloadOptions: { allowPrivateNetwork: true } } : {}),
+};
 const tyDeps = {
   db: database.db,
   secretBox,
   logger,
   limiter: new RedisRateLimiter(limiterRedis, "ty:"),
   integratorName: env.TRENDYOL_INTEGRATOR_NAME,
+  ...(env.TRENDYOL_BASE_URL ? { clientOptions: { baseUrl: env.TRENDYOL_BASE_URL } } : {}),
 };
 
 const fetchWorker = new Worker<XmlFetchPayload>(
@@ -96,7 +102,11 @@ for (const w of [fetchWorker, trendyolWorker])
 const SCHEDULE_EVERY_MS = 60_000;
 const CLEANUP_EVERY_MS = 60 * 60_000;
 
+let ticking = false;
 async function tick() {
+  // Yavaş bir tur bitmeden yenisi başlamasın (aynı işleri iki kez kuyruğa eklemeyi dener).
+  if (ticking) return;
+  ticking = true;
   try {
     await limiterRedis.set(WORKER_HEARTBEAT_KEY, new Date().toISOString(), "EX", 300);
     const r = await scheduleDueFetches({ db: database.db, queue, logger });
@@ -105,6 +115,8 @@ async function tick() {
     if (t.sync || t.import) logger.info(t, "Trendyol işleri kuyruğa eklendi");
   } catch (err) {
     logger.error({ err }, "zamanlayıcı hatası");
+  } finally {
+    ticking = false;
   }
 }
 async function cleanup() {
@@ -124,15 +136,16 @@ void tick();
 void cleanup();
 logger.info("worker başladı");
 
-const shutdown = async (signal: string) => {
-  logger.info({ signal }, "kapanıyor");
-  timers.forEach(clearInterval);
-  await Promise.all([fetchWorker.close(), trendyolWorker.close()]);
-  await queue.close();
-  await database.close();
-  connection.disconnect();
-  limiterRedis.disconnect();
-  process.exit(0);
-};
-process.once("SIGINT", () => void shutdown("SIGINT"));
-process.once("SIGTERM", () => void shutdown("SIGTERM"));
+installLifecycle({
+  logger,
+  // Uzun süren iş yarıda kalırsa BullMQ onu "stalled" sayıp yeniden çalıştırır; işler idempotent.
+  timeoutMs: 50_000,
+  close: async () => {
+    timers.forEach(clearInterval);
+    await Promise.all([fetchWorker.close(), trendyolWorker.close()]);
+    await queue.close();
+    await database.close();
+    connection.disconnect();
+    limiterRedis.disconnect();
+  },
+});

@@ -122,6 +122,40 @@ export interface TenantSettings {
   orderPiiRetentionDays: number;
 }
 
+// ── Fiyat kuralları ─────────────────────────────────────────────────────────
+
+export type RuleScope = "brand" | "category" | "supplier" | "general";
+
+export interface PricingRuleInput {
+  scope: RuleScope;
+  /** general için null; marka/kategori adı veya tedarikçi id'si */
+  scopeKey: string | null;
+  multiplier: number;
+  /** kuruş */
+  addFixed: number;
+  rounding: { kind: "none" } | { kind: "ending"; kurus: number };
+  minMarginRate: number | null;
+  commissionRate: number | null;
+  /** kuruş */
+  minPrice: number | null;
+  maxPrice: number | null;
+  listPriceRule: { kind: "same" } | { kind: "multiplier"; value: number };
+}
+
+export interface PricingRule extends PricingRuleInput {
+  id: number;
+  createdAt: string;
+}
+
+export type PricePreview =
+  | { status: "ok"; salePrice: number; listPrice: number }
+  | { status: "needs_review"; salePrice: number; listPrice: number; changeRate: number }
+  | {
+      status: "blocked";
+      reason: "invalid_input" | "non_positive_price" | "below_cost";
+      detail: string;
+    };
+
 // ── Uyarılar ────────────────────────────────────────────────────────────────
 
 export interface PanelAlert {
@@ -562,6 +596,15 @@ export const api = {
         "POST",
         "/settings/webhook",
       ),
+  },
+  pricing: {
+    list: () => request<PricingRule[]>("GET", "/pricing-rules"),
+    create: (input: PricingRuleInput) => request<PricingRule>("POST", "/pricing-rules", input),
+    update: (id: number, input: PricingRuleInput) =>
+      request<PricingRule>("PUT", `/pricing-rules/${id}`, input),
+    remove: (id: number) => request<void>("DELETE", `/pricing-rules/${id}`),
+    preview: (input: { rule: PricingRuleInput; cost: number; fxRate?: number }) =>
+      request<PricePreview>("POST", "/pricing-rules/preview", input),
   },
   orders: {
     list: (params: OrdersQuery) =>

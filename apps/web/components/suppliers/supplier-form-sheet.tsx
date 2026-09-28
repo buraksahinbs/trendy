@@ -248,6 +248,8 @@ function SupplierForm({ supplier, onDone }: { supplier: Supplier | null; onDone:
   return (
     <Form {...form}>
       <form
+        // Sayfa hazır olmadan gönderilirse şifre adres çubuğuna (GET) düşmesin.
+        method="post"
         onSubmit={form.handleSubmit(onSubmit)}
         className="flex min-h-0 flex-1 flex-col"
         noValidate

@@ -112,9 +112,13 @@ describe.skipIf(!url)("tedarikçi uçları", () => {
     auth: { username: "u", password: "gizli-sifre" },
   };
 
-  it("owner tedarikçi ekler, listeler; kimlik bilgisi dönmez", async () => {
+  it("owner tedarikçi ekler, listeler; kimlik bilgisi dönmez; ilk çekim hemen başlar", async () => {
+    queued.length = 0;
     const res = await call("owner", "POST", "/suppliers", valid);
     expect(res.statusCode).toBe(201);
+    expect(queued).toEqual([
+      { tenantId: users.owner.tenantId, supplierId: res.json().id, trigger: "manual" },
+    ]);
     const list = await call("owner", "GET", "/suppliers");
     expect(list.json()).toEqual([
       expect.objectContaining({

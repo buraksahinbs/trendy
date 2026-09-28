@@ -9,3 +9,4 @@ export * from "./channel.js";
 export * from "./trendyol-admin.js";
 export * from "./orders.js";
 export * from "./alerts.js";
+export * from "./pricing-rules.js";

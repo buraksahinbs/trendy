@@ -9,6 +9,7 @@ import {
   type ListingsQuery,
   type MappingConfig,
   type OrdersQuery,
+  type PricingRuleInput,
   type ReviewStatus,
   type Supplier,
   type SupplierInput,
@@ -24,6 +25,7 @@ export const keys = {
   listings: (q: ListingsQuery) => ["trendyol", "listings", q] as const,
   reviews: (status: ReviewStatus) => ["trendyol", "reviews", status] as const,
   settings: ["settings"] as const,
+  pricingRules: ["pricing-rules"] as const,
   alerts: ["alerts"] as const,
   webhook: ["settings", "webhook"] as const,
   orders: (q: OrdersQuery) => ["orders", q] as const,
@@ -170,6 +172,32 @@ export function useUpdateSettings() {
       void qc.invalidateQueries({ queryKey: keys.me });
       void qc.invalidateQueries({ queryKey: keys.alerts });
     },
+  });
+}
+
+// ── Fiyat kuralları ─────────────────────────────────────────────────────────
+
+export function usePricingRules() {
+  return useQuery({ queryKey: keys.pricingRules, queryFn: api.pricing.list });
+}
+
+export function useSavePricingRule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id?: number; input: PricingRuleInput }) =>
+      id ? api.pricing.update(id, input) : api.pricing.create(input),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: keys.status });
+      return qc.invalidateQueries({ queryKey: keys.pricingRules });
+    },
+  });
+}
+
+export function useDeletePricingRule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => api.pricing.remove(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.pricingRules }),
   });
 }
 

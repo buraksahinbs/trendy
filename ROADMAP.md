@@ -419,13 +419,14 @@ docs/
 - [x] Hesaplama adımları (sıra sabit ve test edilmiş olmalı): maliyet → döviz çevirimi → çarpan (ör. ×1,35) → sabit ekleme (ör. +25 TL kargo payı) → yuvarlama (ör. ,90 veya ,99) → min/max sınırlar.
 - [ ] **KDV yaklaşımı** açıkça seçilir ve ekranda gösterilir: Tedarikçi fiyatı KDV dahil mi, hariç mi? Trendyol `salePrice` değerinin KDV dahil mi hariç mi yorumlandığını dokümandan doğrula. (⚠️ DOĞRULA)
 - [x] `listPrice` kuralı: `listPrice = salePrice` veya `salePrice × katsayı`. Her durumda `listPrice ≥ salePrice` garanti edilir.
-- [~] Komisyon tahmini: Kullanıcı kategori bazında beklenen komisyon oranını girer (MVP'de API'den önceden alınan bir komisyon tablosu kullanılmıyor). Motor minimum kâr marjını buna göre korur. Siparişlerdeki `commission` alanı ile gerçekleşen komisyon ileride karşılaştırılabilir. _(Motor destekliyor; kategori bazlı giriş ekranı yok.)_
+- [x] Komisyon tahmini: Kullanıcı kategori bazında beklenen komisyon oranını girer (MVP'de API'den önceden alınan bir komisyon tablosu kullanılmıyor). Motor minimum kâr marjını buna göre korur. Siparişlerdeki `commission` alanı ile gerçekleşen komisyon ileride karşılaştırılabilir. _(Kategori kapsamlı kurala komisyon oranı ve asgari kâr girilebiliyor: Fiyat Kuralları ekranı.)_
 - [x] **Güvenlik sınırları (guardrails):**
   - Tek seferde fiyat değişimi %X'ten (ör. %30) fazlaysa otomatik gönderme, **onay kuyruğuna** al. _(Onay kuyruğu: `price_reviews`; `POST /trendyol/price-reviews/:id/approve` onaylanan fiyatı sonraki senkronda gönderir.)_
   - Maliyetin altında satış asla otomatik gönderilmez.
   - Sıfır, negatif veya NaN fiyat hiçbir koşulda gönderilmez.
 - [ ] Simülasyon ekranı: "Bu kural uygulanırsa 1.240 ürünün fiyatı değişir; en büyük 10 değişiklik şunlar."
 - [x] Kapsamlı birim testleri (tablo tabanlı testler, sınır değerler, yuvarlama durumları).
+- [x] Kural yönetimi: `GET/POST/PUT/DELETE /pricing-rules` ve panelde **Fiyat Kuralları** ekranı; kaydetmeden örnek hesap (`POST /pricing-rules/preview`, senkronla aynı motor). Kural değişince senkron tetiklenir.
 
 **Kabul kriterleri:** Birim test kapsamı yüksek (paket için ≥%95 hedef), guardrail testleri geçiyor, simülasyon ekranı çalışıyor.
 

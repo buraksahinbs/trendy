@@ -15,7 +15,14 @@ export interface Database {
 }
 
 export function createDatabase(url: string, opts: { max?: number } = {}): Database {
-  const client = postgres(url, { max: opts.max ?? 10, onnotice: () => {} });
+  const client = postgres(url, {
+    max: opts.max ?? 10,
+    onnotice: () => {},
+    // Kopan/yarım kalan bağlantılar havuzda birikmesin; sorun hızlıca hata olarak görünsün.
+    connect_timeout: 10,
+    idle_timeout: 300,
+    max_lifetime: 60 * 30,
+  });
   const db = drizzle(client, { schema });
   return { db, close: () => client.end() };
 }

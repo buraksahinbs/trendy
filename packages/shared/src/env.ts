@@ -35,6 +35,12 @@ const previousKeys = z
     return out;
   });
 
+const optionalFlag = z.preprocess(
+  (v) => (v === "" || v === undefined ? undefined : v === "true" || v === "1"),
+  z.boolean().optional(),
+);
+
+// Düz nesne kalmalı: migration CLI `.pick()` ile yalnızca gereken alanları kullanır.
 export const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   LOG_LEVEL: z.enum(["trace", "debug", "info", "warn", "error", "fatal"]).default("info"),
@@ -63,6 +69,18 @@ export const envSchema = z.object({
       )
       .optional(),
   ),
+  /** Yalnızca geliştirme/test: Trendyol yerine sahte sunucu adresi. Üretimde yasak. */
+  TRENDYOL_BASE_URL: z.preprocess((v) => (v === "" ? undefined : v), z.url().optional()),
+  /** Yalnızca geliştirme/test: yerel ağdaki XML feed'lerine izin (SSRF koruması kapanır). Üretimde yasak. */
+  FEED_ALLOW_PRIVATE_NETWORK: optionalFlag,
+});
+
+/** Yalnızca geliştirme/test için olan yönlendirmeler üretimde açılamaz. */
+const runtimeEnvSchema = envSchema.superRefine((env, ctx) => {
+  if (env.NODE_ENV !== "production") return;
+  for (const key of ["TRENDYOL_BASE_URL", "FEED_ALLOW_PRIVATE_NETWORK"] as const) {
+    if (env[key]) ctx.addIssue({ code: "custom", path: [key], message: "üretimde kullanılamaz" });
+  }
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -76,7 +94,7 @@ export class EnvError extends Error {
 
 /** Hata mesajları değerleri içermez; yalnızca değişken adı ve kural yazılır. */
 export function loadEnv(source: Record<string, string | undefined> = process.env): Env {
-  const result = envSchema.safeParse(source);
+  const result = runtimeEnvSchema.safeParse(source);
   if (!result.success) {
     throw new EnvError(
       result.error.issues.map((i) => `${i.path.join(".") || "(kök)"}: ${i.message}`),

@@ -2,6 +2,7 @@
 
 import {
   BadgePercent,
+  Calculator,
   History,
   LayoutDashboard,
   Package,
@@ -49,6 +50,7 @@ const NAV: { label: string; items: NavItem[] }[] = [
     items: [
       { title: "Tedarikçiler", href: "/tedarikciler", icon: Truck },
       { title: "Ürünler", href: "/urunler", icon: Package },
+      { title: "Fiyat Kuralları", href: "/fiyat-kurallari", icon: Calculator },
       { title: "Fiyat Onayları", href: "/fiyat-onaylari", icon: BadgePercent, badge: "reviews" },
     ],
   },

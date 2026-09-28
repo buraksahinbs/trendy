@@ -12,7 +12,7 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     services:
       postgres:
         image: postgres:17
@@ -43,6 +43,8 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
+      - name: Uçtan uca test (sahte Trendyol + feed; API, worker, migration gerçek)
+        run: pnpm e2e
       - name: Satıcı paneli derlemesi
         run: pnpm --filter @trendy/web build
         env:

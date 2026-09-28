@@ -176,3 +176,17 @@
 - API ters proxy arkasında `TRUST_PROXY=true` ile çalışır (gerçek istemci IP'si rate limit ve loglar için).
 - `install.sh` rastgele veritabanı şifresi ve `SECRETS_ENCRYPTION_KEY` üretir; `deploy/.env` git'e girmez ve sunucu dışına yedeklenmelidir.
 - Yedek: günlük `pg_dump` (14 gün), geri yükleme onay ister. Yedekten dönüş tam kurulumda denendi.
+
+## 2026-09-28 — Güvenilirlik turu ve uçtan uca doğrulama
+
+**Karar:** `pnpm e2e` (`apps/api/e2e/`) platformu gerçek süreçlerle doğrular: boş veritabanına migration, API ve worker (tsx), sahte Trendyol (resmi yol/alan adları, Basic auth ve User-Agent kontrolü) ve ETag destekli sahte XML feed. Akış: kayıt/giriş → Trendyol doğrulama → içe aktarma → tedarikçi + eşleştirme → stok senkronu → batch sonucu → fiyat kuralı + kur → onay kuyruğu → hata/uyarı → 304 → güvenlik freni → siparişler (T.C. kimlik no yok) → webhook → acil durdurma → tenant izolasyonu → loglarda sır yok → SIGTERM ile temiz kapanış. CI'da her push'ta çalışır.
+**Test yönlendirmeleri:** `TRENDYOL_BASE_URL` ve `FEED_ALLOW_PRIVATE_NETWORK` yalnızca geliştirme/test içindir; `NODE_ENV=production` iken `loadEnv` reddeder. Kontrol `envSchema` üzerinde değil `loadEnv`'dedir: şema düz nesne kalmalı (migration CLI `.pick()` kullanıyor; zod 4 refinement'lı şemada `.pick()` hata verir — e2e yakaladı).
+**Bulunan ve düzeltilen hatalar:**
+
+- Fiyat kurallarını yönetecek API/ekran yoktu; fiyat senkronu fiilen kullanılamıyordu → `/pricing-rules` + Fiyat Kuralları ekranı (senkronla aynı motorla canlı önizleme).
+- Yeni tedarikçide ilk çekim zamanlamayı bekliyordu (eşleştirme ekranı boş kalıyordu) → oluşturulunca hemen kuyruğa eklenir.
+- Veritabanı hata logları sorgu parametrelerini (e-posta, parola özeti) içeriyordu → `redact` sorgu hatalarında `params` alanını ve mesaj/stack'teki `params:` satırını maskeler.
+- Şifre içeren formlar JavaScript yüklenmeden gönderilirse değerler URL'ye (GET) düşüyordu → `method="post"`.
+- Kurulum kılavuzundaki ufw adımı özel SSH portlu sunucuda erişimi kesebilirdi → `deploy/bootstrap.sh` mevcut SSH portunu korur.
+
+**Süreç sağlamlığı:** API ve worker'da yakalanmamış hata/promise reddinde loglayıp kontrollü çıkış (Docker yeniden başlatır), kapanışa süre sınırı (API 25 sn, worker 50 sn; compose `stop_grace_period` 60 sn), zamanlayıcı turları üst üste binmez, veritabanı havuzunda bağlantı/boşta/ömür zaman aşımları, Trendyol'dan JSON olmayan 2xx yanıt (bakım sayfası) geçici hata sayılıp tekrar denenir.

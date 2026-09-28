@@ -124,6 +124,8 @@ export function TrendyolCredentialsCard({
       </CardHeader>
       <Form {...form}>
         <form
+          // Sayfa hazır olmadan gönderilirse şifre adres çubuğuna (GET) düşmesin.
+          method="post"
           onSubmit={form.handleSubmit(onSubmit)}
           noValidate
           className="flex flex-1 flex-col gap-5"

@@ -83,6 +83,8 @@ export function RegisterForm() {
     >
       <Form {...form}>
         <form
+          // Sayfa hazır olmadan gönderilirse şifre adres çubuğuna (GET) düşmesin.
+          method="post"
           onSubmit={form.handleSubmit((v) => register.mutate(v))}
           className="grid gap-4"
           noValidate

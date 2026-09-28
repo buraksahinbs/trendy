@@ -44,4 +44,25 @@ describe("redact", () => {
     expect(redact("x")).toBe("x");
     expect(redact(null)).toBeNull();
   });
+
+  it("sorgu hatalarında parametre değerleri maskelenir (mesaj, stack, alan, cause)", () => {
+    const cause = Object.assign(new Error('relation "users" does not exist'), { code: "42P01" });
+    const err = Object.assign(
+      new Error(
+        'Failed query: insert into "users" values ($1, $2)\nparams: a@b.com,$argon2id$hash',
+      ),
+      {
+        query: 'insert into "users" values ($1, $2)',
+        params: ["a@b.com", "$argon2id$hash"],
+        cause,
+      },
+    );
+    const out = redact({ err }) as unknown as { err: Record<string, unknown> };
+    const text = JSON.stringify(out);
+    expect(text).not.toContain("a@b.com");
+    expect(text).not.toContain("argon2id");
+    expect(out.err.params).toBe(REDACTED);
+    expect(out.err.query).toContain("$1");
+    expect((out.err.cause as { code: string }).code).toBe("42P01");
+  });
 });

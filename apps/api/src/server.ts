@@ -1,6 +1,6 @@
 import { createDatabase } from "@trendy/db";
 import { createJobQueue } from "@trendy/jobs";
-import { createLogger, loadEnv, secretBoxFromEnv } from "@trendy/shared";
+import { createLogger, installLifecycle, loadEnv, secretBoxFromEnv } from "@trendy/shared";
 import { RedisRateLimiter } from "@trendy/trendyol-client";
 import { Redis } from "ioredis";
 import { buildApp } from "./app.js";
@@ -23,17 +23,18 @@ const app = await buildApp({
   sessionTtlMs: env.SESSION_TTL_HOURS * 3_600_000,
   secureCookies: env.NODE_ENV === "production",
   ...(env.TRUST_PROXY ? { trustProxy: env.TRUST_PROXY === "true" ? true : env.TRUST_PROXY } : {}),
+  ...(env.TRENDYOL_BASE_URL ? { trendyolClientOptions: { baseUrl: env.TRENDYOL_BASE_URL } } : {}),
+  ...(env.FEED_ALLOW_PRIVATE_NETWORK ? { feedDownloadOptions: { allowPrivateNetwork: true } } : {}),
 });
 
-const shutdown = async (signal: string) => {
-  logger.info({ signal }, "kapanıyor");
-  await app.close();
-  await queue.close();
-  await database.close();
-  redis.disconnect();
-  process.exit(0);
-};
-process.once("SIGINT", () => void shutdown("SIGINT"));
-process.once("SIGTERM", () => void shutdown("SIGTERM"));
+installLifecycle({
+  logger,
+  close: async () => {
+    await app.close();
+    await queue.close();
+    await database.close();
+    redis.disconnect();
+  },
+});
 
 await app.listen({ host: env.API_HOST, port: env.API_PORT });

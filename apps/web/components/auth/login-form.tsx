@@ -71,6 +71,8 @@ export function LoginForm() {
     >
       <Form {...form}>
         <form
+          // Sayfa hazır olmadan gönderilirse şifre adres çubuğuna (GET) düşmesin.
+          method="post"
           onSubmit={form.handleSubmit((v) => login.mutate(v))}
           className="grid gap-4"
           noValidate

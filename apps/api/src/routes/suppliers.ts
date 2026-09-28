@@ -122,6 +122,8 @@ export async function supplierRoutes(app: FastifyInstance) {
     const id = await withTenant(db, tenantId, (tx) =>
       createSupplier(tx, secretBox, tenantId, { name, feedUrl, ...defined(optional) }),
     );
+    // İlk çekim zamanlamayı beklemez: eşleştirme ekranı ham ürünlerle hemen dolsun.
+    await queue.enqueueSupplierFetch({ tenantId, supplierId: id, trigger: "manual" });
     return reply.status(201).send({ id });
   });
 

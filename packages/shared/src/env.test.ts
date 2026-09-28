@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createSecretBox } from "./crypto.js";
-import { EnvError, loadEnv, secretBoxFromEnv } from "./env.js";
+import { EnvError, envSchema, loadEnv, secretBoxFromEnv } from "./env.js";
 
 const key = randomBytes(32).toString("base64");
 const valid = {
@@ -76,5 +76,37 @@ describe("loadEnv", () => {
     ]) {
       expect(() => loadEnv({ ...valid, PUBLIC_BASE_URL: bad })).toThrow(EnvError);
     }
+  });
+
+  it("test yönlendirmeleri geliştirmede çalışır, üretimde reddedilir", () => {
+    const dev = loadEnv({
+      ...valid,
+      TRENDYOL_BASE_URL: "http://127.0.0.1:4010",
+      FEED_ALLOW_PRIVATE_NETWORK: "true",
+    });
+    expect(dev.TRENDYOL_BASE_URL).toBe("http://127.0.0.1:4010");
+    expect(dev.FEED_ALLOW_PRIVATE_NETWORK).toBe(true);
+    expect(loadEnv({ ...valid, FEED_ALLOW_PRIVATE_NETWORK: "" }).FEED_ALLOW_PRIVATE_NETWORK).toBe(
+      undefined,
+    );
+    for (const extra of [
+      { TRENDYOL_BASE_URL: "http://127.0.0.1:4010" },
+      { FEED_ALLOW_PRIVATE_NETWORK: "1" },
+    ]) {
+      expect(() => loadEnv({ ...valid, NODE_ENV: "production", ...extra })).toThrow(EnvError);
+    }
+    expect(
+      loadEnv({ ...valid, NODE_ENV: "production", FEED_ALLOW_PRIVATE_NETWORK: "false" })
+        .FEED_ALLOW_PRIVATE_NETWORK,
+    ).toBe(false);
+  });
+});
+
+describe("envSchema", () => {
+  it("düz nesne kalır: migration CLI yalnızca gereken alanları seçebilir", () => {
+    const picked = envSchema
+      .pick({ DATABASE_URL: true, LOG_LEVEL: true })
+      .parse({ DATABASE_URL: "postgres://u:p@h:5432/d" });
+    expect(picked).toEqual({ DATABASE_URL: "postgres://u:p@h:5432/d", LOG_LEVEL: "info" });
   });
 });
