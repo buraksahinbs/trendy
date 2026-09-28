@@ -113,8 +113,7 @@ export function SupplierProducts({ supplierId }: { supplierId: number }) {
                 </TableHead>
               ))}
               <TableHead className="hidden sm:table-cell">Son görülme</TableHead>
-              <TableHead className="w-24">Durum</TableHead>
-              <TableHead className="w-28">Eşleştirme</TableHead>
+              <TableHead className="w-28">Durum</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -146,26 +145,25 @@ export function SupplierProducts({ supplierId }: { supplierId: number }) {
                     >
                       {formatRelative(p.lastSeenAt)}
                     </TableCell>
+                    {/* Yalnızca sorunlar işaretlenir; feed'de olan ve sorunsuz okunan ürün boş kalır. */}
                     <TableCell>
-                      {p.missingSince ? (
-                        <Badge
-                          variant="warning"
-                          title={`${formatDateTime(p.missingSince)} tarihinden beri feed'de yok`}
-                        >
-                          kayıp
-                        </Badge>
-                      ) : (
-                        <Badge variant="success">feed&apos;de</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <IssueBadge product={p} />
+                      <div className="flex flex-wrap gap-1">
+                        {p.missingSince && (
+                          <Badge
+                            variant="warning"
+                            title={`${formatDateTime(p.missingSince)} tarihinden beri feed'de yok`}
+                          >
+                            kayıp
+                          </Badge>
+                        )}
+                        <IssueBadge product={p} />
+                      </div>
                     </TableCell>
                   </TableRow>
                   {open && (
                     <TableRow className="hover:bg-transparent">
                       <TableCell
-                        colSpan={columns.length + 5}
+                        colSpan={columns.length + 4}
                         className="bg-muted/20 whitespace-normal"
                       >
                         <div className="space-y-3 py-1">
@@ -244,7 +242,7 @@ function IssueBadge({ product: p }: { product: SupplierProduct }) {
   const errors = issues.filter((i) => i.level === "error").length;
   if (errors > 0) return <Badge variant="danger">{errors} hata</Badge>;
   if (issues.length > 0) return <Badge variant="warning">{issues.length} uyarı</Badge>;
-  if (p.normalizedAt) return <Badge variant="success">sorunsuz</Badge>;
+  if (p.normalizedAt) return null;
   return <span className="text-muted-foreground text-xs">işlenmedi</span>;
 }
 

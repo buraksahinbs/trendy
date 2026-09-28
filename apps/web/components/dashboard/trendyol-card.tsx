@@ -1,14 +1,12 @@
 "use client";
 
 import type { UseQueryResult } from "@tanstack/react-query";
-import { Download, Loader2, RefreshCcw } from "lucide-react";
+import { ArrowRight, CheckCircle2, Download, Loader2, RefreshCcw } from "lucide-react";
 import Link from "next/link";
 
 import { ErrorState } from "@/components/error-state";
-import { JobStatusBadge, SummaryChips } from "@/components/jobs/job-bits";
 import { LISTING_STATUS, LISTING_STATUS_ORDER } from "@/components/listings/listing-status";
 import { OwnerOnly } from "@/components/owner-only";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,8 +17,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { ListingStatus, StatusJob, TrendyolStatus } from "@/lib/api";
-import { formatDateTime, formatNumber, formatRelative } from "@/lib/format";
+import type { ListingStatus, TrendyolStatus } from "@/lib/api";
+import { formatNumber, formatRelative } from "@/lib/format";
 import { useTriggerTrendyol } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
@@ -37,30 +35,32 @@ const BAR_COLOR: Record<ListingStatus, string> = {
 export function TrendyolCard({ status }: { status: UseQueryResult<TrendyolStatus> }) {
   const sync = useTriggerTrendyol("sync");
   const importer = useTriggerTrendyol("import");
+  const st = status.data;
+  const last = st?.lastSync;
 
   return (
     <Card className="gap-5">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          Trendyol senkronu
-          {status.data && (
-            <Badge variant="outline" className="font-normal">
-              {status.data.syncEnv === "prod" ? "Canlı" : "Test ortamı"}
-            </Badge>
-          )}
-        </CardTitle>
+        <CardTitle>Trendyol senkronu</CardTitle>
         <CardDescription>
-          Stok ve fiyatlar 15 dakikada bir ve feed değişince gönderilir.
+          {!st
+            ? "Stok ve fiyatlar 15 dakikada bir ve feed değişince gönderilir."
+            : st.syncPaused
+              ? "Acil durdurma açık: stok ve fiyat gönderilmiyor."
+              : last
+                ? `Son senkron ${formatRelative(last.finishedAt ?? last.startedAt)} · ${formatNumber(st.managedVariants)} varyant takipte`
+                : "Henüz senkron çalışmadı."}
         </CardDescription>
-        <CardAction className="flex gap-2">
+        <CardAction className="flex gap-1">
           <OwnerOnly>
             {({ disabled }) => (
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 disabled={disabled || importer.isPending}
                 onClick={() => importer.mutate()}
                 className="hidden sm:inline-flex"
+                title="Trendyol'daki ürün listenizi yeniden çek"
               >
                 {importer.isPending ? <Loader2 className="animate-spin" /> : <Download />}
                 İçe aktar
@@ -70,8 +70,9 @@ export function TrendyolCard({ status }: { status: UseQueryResult<TrendyolStatus
           <OwnerOnly>
             {({ disabled }) => (
               <Button
+                variant="outline"
                 size="sm"
-                disabled={disabled || sync.isPending || status.data?.syncPaused}
+                disabled={disabled || sync.isPending || st?.syncPaused}
                 onClick={() => sync.mutate()}
               >
                 {sync.isPending ? <Loader2 className="animate-spin" /> : <RefreshCcw />}
@@ -86,11 +87,8 @@ export function TrendyolCard({ status }: { status: UseQueryResult<TrendyolStatus
           <ErrorState error={status.error} onRetry={() => void status.refetch()} className="py-8" />
         ) : status.isPending ? (
           <div className="space-y-4">
-            <Skeleton className="h-3 w-full rounded-full" />
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Skeleton className="h-20" />
-              <Skeleton className="h-20" />
-            </div>
+            <Skeleton className="h-2.5 w-full rounded-full" />
+            <Skeleton className="h-24" />
           </div>
         ) : (
           <TrendyolBody status={status.data} />
@@ -100,108 +98,132 @@ export function TrendyolCard({ status }: { status: UseQueryResult<TrendyolStatus
   );
 }
 
+/** Dikkat gerektiren durumlar; Genel Bakış'taki sayı da buradan hesaplanır. */
+export function attentionItems(st: TrendyolStatus) {
+  const items: {
+    key: string;
+    count: number;
+    text: string;
+    href: string;
+    tone: "warning" | "danger";
+  }[] = [];
+  const add = (
+    key: string,
+    count: number,
+    text: string,
+    href: string,
+    tone: "warning" | "danger",
+  ) => {
+    if (count > 0) items.push({ key, count, text, href, tone });
+  };
+  add(
+    "reviews",
+    st.pendingReviews,
+    "fiyat değişikliği onayınızı bekliyor",
+    "/fiyat-onaylari",
+    "warning",
+  );
+  add("errors", st.listingErrors, "üründe gönderim hatası var", "/urunler?hata=1", "danger");
+  add(
+    "locked",
+    st.listings.locked ?? 0,
+    "ürün Trendyol tarafından kilitlendi",
+    "/urunler?durum=locked",
+    "warning",
+  );
+  add(
+    "rejected",
+    st.listings.rejected ?? 0,
+    "ürün reddedildi",
+    "/urunler?durum=rejected",
+    "danger",
+  );
+  return items;
+}
+
 function TrendyolBody({ status }: { status: TrendyolStatus }) {
   const entries = LISTING_STATUS_ORDER.map((s) => [s, status.listings[s] ?? 0] as const).filter(
     ([, n]) => n > 0,
   );
   const total = entries.reduce((a, [, n]) => a + n, 0);
+  const attention = attentionItems(status);
+  const failed = status.lastSync?.status === "failed" ? status.lastSync : null;
+
+  if (total === 0) {
+    return (
+      <p className="text-muted-foreground rounded-lg border border-dashed px-4 py-5 text-center text-sm">
+        Trendyol ürünleriniz henüz içe aktarılmadı. API bilgilerinizi doğruladığınızda içe aktarma
+        otomatik başlar.
+      </p>
+    );
+  }
 
   return (
     <div className="space-y-5">
-      {total > 0 ? (
-        <div className="space-y-2.5">
-          <div className="flex items-baseline justify-between text-sm">
-            <span className="text-muted-foreground">Trendyol kayıtları</span>
-            <span className="font-medium tabular-nums">{formatNumber(total)}</span>
-          </div>
-          <div className="bg-muted flex h-2.5 gap-0.5 overflow-hidden rounded-full">
-            {entries.map(([s, n]) => (
-              <div
-                key={s}
-                className={cn("h-full", BAR_COLOR[s])}
-                style={{ width: `${Math.max(1.5, (n / total) * 100)}%` }}
-                title={`${LISTING_STATUS[s].label}: ${formatNumber(n)}`}
-              />
-            ))}
-          </div>
-          <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-            {entries.map(([s, n]) => (
-              <Link
-                key={s}
-                href={`/urunler?durum=${s}`}
-                className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-xs"
-              >
-                <span className={cn("size-2 rounded-full", BAR_COLOR[s])} />
-                {LISTING_STATUS[s].label}
-                <span className="text-foreground font-medium tabular-nums">{formatNumber(n)}</span>
-              </Link>
-            ))}
-          </div>
+      <div className="space-y-2">
+        <div className="bg-muted flex h-2 gap-px overflow-hidden rounded-full">
+          {entries.map(([s, n]) => (
+            <div
+              key={s}
+              className={cn("h-full", BAR_COLOR[s])}
+              style={{ width: `${Math.max(1.5, (n / total) * 100)}%` }}
+              title={`${LISTING_STATUS[s].label}: ${formatNumber(n)}`}
+            />
+          ))}
         </div>
-      ) : (
-        <p className="text-muted-foreground rounded-lg border border-dashed px-4 py-5 text-center text-sm">
-          Trendyol ürünleriniz henüz içe aktarılmadı. API bilgilerinizi doğruladığınızda içe aktarma
-          otomatik başlar.
+        <div className="text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 text-xs">
+          {entries.map(([s, n]) => (
+            <Link
+              key={s}
+              href={`/urunler?durum=${s}`}
+              className="hover:text-foreground flex items-center gap-1.5"
+            >
+              <span className={cn("size-1.5 rounded-full", BAR_COLOR[s])} />
+              {LISTING_STATUS[s].label} <span className="tabular-nums">{formatNumber(n)}</span>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {failed && (
+        <p className="text-destructive text-sm">
+          Son senkron başarısız oldu ({formatRelative(failed.startedAt)}): {failed.error}
         </p>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <JobTile title="Son senkron" job={status.lastSync} jobType="ty_sync" />
-        <JobTile title="Son içe aktarma" job={status.lastImport} jobType="ty_import" />
-      </div>
-
-      <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
-        <Metric label="Senkronlanan varyant" value={formatNumber(status.managedVariants)} />
-        <Metric label="Bekleyen batch" value={formatNumber(status.pendingBatches)} />
-        <Metric
-          label="Hatalı kayıt"
-          value={formatNumber(status.listingErrors)}
-          danger={status.listingErrors > 0}
-        />
-      </dl>
-    </div>
-  );
-}
-
-function Metric({ label, value, danger }: { label: string; value: string; danger?: boolean }) {
-  return (
-    <div className="bg-muted/40 rounded-lg px-3 py-2.5">
-      <dt className="text-muted-foreground text-xs">{label}</dt>
-      <dd className={cn("text-base font-semibold tabular-nums", danger && "text-destructive")}>
-        {value}
-      </dd>
-    </div>
-  );
-}
-
-function JobTile({
-  title,
-  job,
-  jobType,
-}: {
-  title: string;
-  job: StatusJob | null;
-  jobType: string;
-}) {
-  return (
-    <div className="space-y-2 rounded-lg border p-3">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-muted-foreground text-xs font-medium">{title}</span>
-        {job && <JobStatusBadge status={job.status} />}
-      </div>
-      {job ? (
-        <>
-          <div className="text-sm font-medium" title={formatDateTime(job.startedAt)}>
-            {formatRelative(job.startedAt)}
-          </div>
-          {job.status === "failed" && job.error ? (
-            <p className="text-destructive line-clamp-2 text-xs">{job.error}</p>
-          ) : (
-            <SummaryChips summary={job.summary} jobType={jobType} max={3} />
-          )}
-        </>
+      {attention.length === 0 ? (
+        <p className="text-muted-foreground flex items-center gap-2 text-sm">
+          <CheckCircle2 className="text-success size-4" />
+          Her şey yolunda; bekleyen bir işiniz yok.
+        </p>
       ) : (
-        <div className="text-muted-foreground text-sm">Henüz çalışmadı</div>
+        <ul className="divide-y rounded-lg border">
+          {attention.map((a) => (
+            <li key={a.key}>
+              <Link
+                href={a.href}
+                className="hover:bg-muted/50 flex items-center gap-3 px-3 py-2.5 text-sm transition-colors"
+              >
+                <span
+                  className={cn(
+                    "size-1.5 shrink-0 rounded-full",
+                    a.tone === "danger" ? "bg-destructive" : "bg-warning",
+                  )}
+                />
+                <span className="flex-1">
+                  <span className="font-medium tabular-nums">{formatNumber(a.count)}</span> {a.text}
+                </span>
+                <ArrowRight className="text-muted-foreground size-4" />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {status.pendingBatches > 0 && (
+        <p className="text-muted-foreground text-xs">
+          {formatNumber(status.pendingBatches)} gönderimin sonucu Trendyol&apos;dan bekleniyor.
+        </p>
       )}
     </div>
   );

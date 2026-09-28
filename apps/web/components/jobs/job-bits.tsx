@@ -180,3 +180,57 @@ export function SummaryChips({
     </div>
   );
 }
+
+/**
+ * Sade özet: renkli çip yığını yerine en önemli iki bilgi tek cümlede.
+ * "outline"/"muted" çipler (ör. "2 paket okundu", "1 zaman aralığı") ayrıntıdır, atlanır.
+ */
+export function summaryLine(summary: JobSummary | null, jobType?: string): string {
+  const chips = summaryChips(summary, jobType).filter((c) => !/^0 /.test(c.label));
+  const important = chips.filter((c) => c.variant !== "outline" && c.variant !== "muted");
+  return (important.length ? important : chips)
+    .slice(0, 2)
+    .map((c) => c.label)
+    .join(" · ");
+}
+
+/** Haber içermeyen rutin işler (yeni sipariş yok, feed değişmemiş, hiçbir şey gönderilmemiş). */
+export function isRoutineJob(job: {
+  jobType: string;
+  status: JobStatus;
+  summary: JobSummary | null;
+}): boolean {
+  if (job.status !== "success") return false;
+  const s = job.summary ?? {};
+  switch (job.jobType) {
+    case "ty_orders":
+      return !s.created;
+    case "xml_fetch":
+      return Boolean(s.notModified);
+    case "ty_sync":
+      // Bekleyen fiyat onayları her senkronda yeniden raporlanır; Genel Bakış'ta ayrıca listelenir.
+      return !s.sent;
+    default:
+      return false;
+  }
+}
+
+const DOT: Record<JobStatus, string> = {
+  running: "bg-sky-500 animate-pulse",
+  success: "bg-success",
+  failed: "bg-destructive",
+  skipped: "bg-muted-foreground/50",
+};
+
+/** Etiket yerine küçük durum noktası; başarı normal durumdur, göze batmaz. */
+export function JobStatusDot({ status }: { status: JobStatus }) {
+  const label = (STATUS[status] ?? STATUS.skipped).label;
+  return (
+    <span
+      className={`inline-block size-2 shrink-0 rounded-full ${DOT[status] ?? DOT.skipped}`}
+      role="img"
+      aria-label={label}
+      title={label}
+    />
+  );
+}

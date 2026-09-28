@@ -34,11 +34,19 @@ export function alertLink(a: PanelAlert): { href: string; label: string } | null
 const ICON = { critical: AlertOctagon, warning: AlertTriangle, info: Info } as const;
 
 /** Genel Bakış üstündeki uyarı listesi (en kritik önce). */
-export function PanelAlerts({ className }: { className?: string }) {
+export function PanelAlerts({
+  className,
+  exclude = [],
+}: {
+  className?: string;
+  /** Sayfada başka bir yerde zaten gösterilen uyarı kodları (tekrar gösterilmez). */
+  exclude?: string[];
+}) {
   const alerts = useAlerts();
-  if (!alerts.data?.length) return null;
-  const major = alerts.data.filter((a) => a.level !== "info");
-  const info = alerts.data.filter((a) => a.level === "info");
+  const shown = (alerts.data ?? []).filter((a) => !exclude.includes(a.code));
+  if (!shown.length) return null;
+  const major = shown.filter((a) => a.level !== "info");
+  const info = shown.filter((a) => a.level === "info");
   return (
     <div className={cn("space-y-2", className)}>
       {major.map((a) => {
