@@ -2,3 +2,4 @@ ROADMAP.md
 pnpm-lock.yaml
 .claude/
 docs/trendyol-api/
+packages/db/migrations/

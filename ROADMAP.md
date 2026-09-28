@@ -290,8 +290,8 @@ docs/
 - [x] Ortam değişkenleri şeması (Zod ile doğrulanan `.env`). `.env.example` dosyası. _(`@trendy/shared` → `loadEnv`.)_
 - [x] PostgreSQL + Redis için docker-compose (lokal geliştirme).
 - [ ] Kullanıcı kaydı/girişi (e-posta + şifre; oturum veya JWT). Şifre hash'i argon2 veya bcrypt.
-- [ ] Tenant oluşturma, kullanıcıyı tenant'a bağlama, rol yapısı (owner, staff).
-- [ ] Tenant izolasyon testleri: bir tenant'ın başka bir tenant'ın verisine erişemediğini doğrulayan otomatik testler.
+- [~] Tenant oluşturma, kullanıcıyı tenant'a bağlama, rol yapısı (owner, staff). _(Şema hazır: `users` global, `tenant_members` rolü tutuyor. Kayıt akışı API ile gelecek.)_
+- [x] Tenant izolasyon testleri: bir tenant'ın başka bir tenant'ın verisine erişemediğini doğrulayan otomatik testler. _(`packages/db`: RLS + bileşik FK; okuma, güncelleme, silme, başka tenant adına ekleme, kayıt taşıma ve çapraz bağlama senaryoları.)_
 - [x] Gizli bilgi şifreleme yardımcı fonksiyonu (AES-256-GCM; anahtar ortam değişkeninden veya KMS'ten). Anahtar rotasyonu için sürüm alanı. _(`createSecretBox`; AAD ile tenant bağlamına bağlı.)_
 - [x] Yapılandırılmış loglama. Log'larda `authorization`, `apiKey`, `apiSecret` alanlarını otomatik maskeleyen redaction. _(`createLogger`, pino.)_
 
@@ -546,9 +546,9 @@ docs/
 
 ## 7. Güvenlik ve KVKK kontrol listesi
 
-- [ ] API key/secret veritabanında şifreli; uygulama belleğinde yalnızca kullanım anında çözülür.
+- [x] API key/secret veritabanında şifreli; uygulama belleğinde yalnızca kullanım anında çözülür.
 - [ ] Log'larda gizli bilgi ve kişisel veri maskeleme.
-- [ ] Tenant izolasyonu (uygulama + mümkünse RLS).
+- [x] Tenant izolasyonu (uygulama + mümkünse RLS).
 - [ ] XML indirmede SSRF ve XXE korumaları.
 - [ ] Webhook uç noktasında kimlik doğrulama ve gövde boyutu sınırı.
 - [ ] Sipariş kişisel verileri için saklama süresi ve silme politikası.

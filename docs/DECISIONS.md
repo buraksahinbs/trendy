@@ -60,3 +60,17 @@
 
 **Karar:** Sorted set üzerinde kayan pencere, tek Lua betiğinde atomik. Saat olarak Redis `TIME` kullanılır. Paket ioredis'e doğrudan bağımlı değildir (`eval` arayüzü).
 **Gerekçe:** Çok süreçli worker'lar aynı satıcı için yarışsa da limit aşılmaz; worker saat kayması etkilemez.
+
+## 2026-09-28 — Veritabanı ve tenant izolasyonu
+
+**Karar:** `packages/db`: Drizzle + postgres.js. Migration'lar `drizzle-kit generate` ile üretilir, RLS ve bileşik FK'ler elle yazılmış ayrı bir migration'dadır (`0001_rls.sql`). Tenant verisine yalnızca `withTenant(db, tenantId, fn)` ile erişilir: işlem içinde `SET LOCAL ROLE trendy_app` + `app.tenant_id` ayarı yapılır. Tablo sahibi RLS'e tabi değildir; kayıt, giriş ve tüm tenant'ları tarayan zamanlayıcı gibi sistem işlemleri bu bağlantıyla yapılır.
+**Ayrıntılar:**
+
+- Tenant'a ait her tabloda (alt tablolar dahil) `tenant_id` var; politika tek tip. CI testi, `tenant_id` sütunu olup RLS listesinde olmayan tablo bırakmaz.
+- FK kontrolü RLS'i atladığından, tenant içi ilişkiler `(tenant_id, x_id) → (tenant_id, id)` bileşik FK ile korunur.
+- `users` global tablodur (giriş sırasında tenant bilinmez); uygulama rolü `password_hash` sütununu okuyamaz. Rol `tenant_members` tablosunda.
+- Para kuruş tamsayı, barkod normalize hâliyle saklanır.
+- Kategori, özellik ve marka önbellek tabloları Faz 3'te eklenecek.
+
+**Gerekçe:** İzolasyonun uygulama kodundaki `where tenant_id = ?` disiplinine bırakılmaması; unutulan bir filtre veri sızıntısına yol açmasın.
+**Alternatif:** Tenant başına şema veya veritabanı. Çok sayıda küçük tenant için migration ve bağlantı yönetimi ağır.
