@@ -74,3 +74,22 @@
 
 **Gerekçe:** İzolasyonun uygulama kodundaki `where tenant_id = ?` disiplinine bırakılmaması; unutulan bir filtre veri sızıntısına yol açmasın.
 **Alternatif:** Tenant başına şema veya veritabanı. Çok sayıda küçük tenant için migration ve bağlantı yönetimi ağır.
+
+## 2026-09-28 — Kimlik doğrulama ve oturum
+
+**Karar:** Sunucu tarafı oturum (`sessions` tablosu) + HttpOnly, `SameSite=Lax` cookie; üretimde `Secure` ve `__Host-` önekli. Veritabanında token'ın yalnızca SHA-256 özeti tutulur. Şifre hash'i argon2id (`@node-rs/argon2`, OWASP varsayılanları).
+**Ayrıntılar:**
+
+- Giriş hatası tek tip ("E-posta veya şifre hatalı"); kullanıcı yoksa da sahte hash doğrulanır, yanıt süresinden e-postanın kayıtlı olup olmadığı anlaşılmaz.
+- Giriş, kayıt ve şifre değiştirme denemeleri e-posta başına 10, IP başına 50 / 15 dk ile sınırlı (`RateLimiter`; üretimde Redis).
+- Şifre değişince kullanıcının tüm oturumları silinir.
+- Aktif tenant oturumda tutulur; üyelik her istekte kontrol edilir, kullanıcı mağazadan çıkarılınca erişimi hemen kesilir.
+- CSRF: `SameSite=Lax` başka siteden gelen POST isteklerinde cookie'yi göndermez. Panel farklı bir alan adına taşınırsa ek CSRF token'ı değerlendirilmeli.
+
+**Gerekçe:** JWT'ye göre oturum anında iptal edilebilir (çıkış, şifre değişikliği, mağazadan çıkarılma); token sızıntısında veritabanı özetinden oturum üretilemez.
+**Alternatif:** JWT + refresh token.
+
+## 2026-09-28 — Log maskeleme yalnızca düz nesnelerde
+
+**Karar:** `redact` yalnızca düz nesneleri, dizileri ve Error'ları tarar. Date, URL, Buffer ve Fastify req/res gibi sınıf örneklerini olduğu gibi bırakır; bunları pino serializer'ları güvenli alanlarla yazar.
+**Gerekçe:** Önceki hâli bu nesneleri boş nesneye çeviriyordu (istek logları `"req":{}` çıkıyordu). Fastify'ın req serializer'ı header ve cookie yazmadığı için gizli bilgi riski yok; testle doğrulandı.

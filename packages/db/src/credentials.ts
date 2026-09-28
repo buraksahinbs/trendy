@@ -73,6 +73,28 @@ export async function loadTrendyolCredentials(
   };
 }
 
+/** Panel için özet: gizli bilgiler dönmez, API anahtarının yalnızca son 4 karakteri gösterilir. */
+export async function listTrendyolCredentialSummaries(
+  tx: TenantTx,
+  box: SecretBox,
+  tenantId: number,
+) {
+  const rows = await tx
+    .select()
+    .from(trendyolCredentials)
+    .where(eq(trendyolCredentials.tenantId, tenantId));
+  return rows.map((r) => {
+    const apiKey = box.decrypt(r.apiKeyEnc, context(tenantId, r.env, "api_key"));
+    return {
+      env: r.env,
+      sellerId: r.sellerId,
+      apiKeyHint: apiKey.length > 4 ? `…${apiKey.slice(-4)}` : "…",
+      verifiedAt: r.verifiedAt,
+      updatedAt: r.updatedAt,
+    };
+  });
+}
+
 export async function markTrendyolCredentialsVerified(
   tx: TenantTx,
   tenantId: number,

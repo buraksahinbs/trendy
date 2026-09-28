@@ -27,6 +27,19 @@ describe("redact", () => {
     });
   });
 
+  it("düz olmayan nesneleri (Date, URL, sınıf örnekleri) bozmaz", () => {
+    const at = new Date("2026-09-28T00:00:00Z");
+    class Req {
+      method = "GET";
+    }
+    const req = new Req();
+    const out = redact({ at, url: new URL("https://example.com"), req, nested: { token: "t" } });
+    expect(out.at).toBe(at);
+    expect(out.req).toBe(req);
+    expect(out.url.href).toBe("https://example.com/");
+    expect(out.nested.token).toBe(REDACTED);
+  });
+
   it("ilkel değerlere dokunmaz", () => {
     expect(redact("x")).toBe("x");
     expect(redact(null)).toBeNull();

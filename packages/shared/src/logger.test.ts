@@ -44,3 +44,25 @@ describe("createLogger hata nesneleri", () => {
     expect(lines[0]).toMatchObject({ err: { type: "Error", message: "patladı" } });
   });
 });
+
+describe("createLogger Fastify uyumu", () => {
+  it("req serializer'ı çalışır, header'lar yazılmaz", () => {
+    const { lines, destination } = capture();
+    const log = createLogger({ destination }).child(
+      {},
+      {
+        serializers: {
+          req: (r: { method: string; url: string }) => ({ method: r.method, url: r.url }),
+        },
+      },
+    );
+    class FakeReq {
+      method = "GET";
+      url = "/auth/me";
+      headers = { cookie: "trendy_session=gizli" };
+    }
+    log.info({ req: new FakeReq() }, "incoming request");
+    expect(lines[0]).toMatchObject({ req: { method: "GET", url: "/auth/me" } });
+    expect(JSON.stringify(lines)).not.toContain("gizli");
+  });
+});

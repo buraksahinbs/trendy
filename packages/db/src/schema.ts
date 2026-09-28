@@ -82,6 +82,27 @@ export const users = pgTable(
   (t) => [uniqueIndex("users_email_lower_uq").on(sql`lower(${t.email})`)],
 );
 
+/**
+ * Sunucu tarafı oturumlar. Tarayıcıdaki token'ın kendisi değil SHA-256 özeti saklanır;
+ * veritabanı sızsa bile oturum ele geçirilemez. Çıkışta veya şifre değişince satır silinir.
+ * Sütun adı bilinçli olarak `tenant_id` değil: bu tablo sistem bağlantısıyla okunur, RLS dışıdır.
+ */
+export const sessions = pgTable(
+  "sessions",
+  {
+    tokenHash: text("token_hash").primaryKey(),
+    userId: bigint("user_id", { mode: "number" })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    activeTenantId: bigint("active_tenant_id", { mode: "number" }).references(() => tenants.id, {
+      onDelete: "set null",
+    }),
+    createdAt: createdAt(),
+    expiresAt: ts("expires_at").notNull(),
+  },
+  (t) => [index().on(t.userId), index().on(t.expiresAt)],
+);
+
 // ── Tenant tabloları (RLS) ───────────────────────────────────────────────────
 
 export const tenantMembers = pgTable(

@@ -14,6 +14,11 @@ export function redact<T>(value: T, depth = 0): T {
     const { name, message, stack } = value;
     return redact({ ...value, type: name, message, stack }, depth) as T;
   }
+  // Yalnızca düz nesneler taranır. Date, Buffer, URL gibi değerler ve Fastify'ın req/res
+  // nesneleri olduğu gibi bırakılır; bunları logger serializer'ları güvenli alanlarla yazar
+  // (Fastify req serializer'ı header'ları/cookie'leri yazmaz). Düz nesneye çevirmek onları bozar.
+  const proto = Object.getPrototypeOf(value);
+  if (proto !== Object.prototype && proto !== null) return value;
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
     out[k] = SECRET_KEY.test(k) ? REDACTED : redact(v, depth + 1);

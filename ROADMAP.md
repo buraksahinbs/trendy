@@ -289,8 +289,8 @@ docs/
 - [x] Monorepo kurulumu, lint, format, tip kontrolü, CI (her PR'da test + tip kontrolü). _(GitHub Actions: format, lint, typecheck, test + Redis servisi.)_
 - [x] Ortam değişkenleri şeması (Zod ile doğrulanan `.env`). `.env.example` dosyası. _(`@trendy/shared` → `loadEnv`.)_
 - [x] PostgreSQL + Redis için docker-compose (lokal geliştirme).
-- [ ] Kullanıcı kaydı/girişi (e-posta + şifre; oturum veya JWT). Şifre hash'i argon2 veya bcrypt.
-- [~] Tenant oluşturma, kullanıcıyı tenant'a bağlama, rol yapısı (owner, staff). _(Şema hazır: `users` global, `tenant_members` rolü tutuyor. Kayıt akışı API ile gelecek.)_
+- [x] Kullanıcı kaydı/girişi (e-posta + şifre; oturum veya JWT). Şifre hash'i argon2 veya bcrypt. _(`apps/api`: Fastify, argon2id, sunucu tarafı oturum + HttpOnly cookie, giriş denemesi sınırı, şifre değişince tüm oturumlar kapanır.)_
+- [~] Tenant oluşturma, kullanıcıyı tenant'a bağlama, rol yapısı (owner, staff). _(Kayıtta tenant + owner üyeliği oluşuyor, mağazalar arası geçiş ve rol kontrolü var. Personel davet akışı eksik.)_
 - [x] Tenant izolasyon testleri: bir tenant'ın başka bir tenant'ın verisine erişemediğini doğrulayan otomatik testler. _(`packages/db`: RLS + bileşik FK; okuma, güncelleme, silme, başka tenant adına ekleme, kayıt taşıma ve çapraz bağlama senaryoları.)_
 - [x] Gizli bilgi şifreleme yardımcı fonksiyonu (AES-256-GCM; anahtar ortam değişkeninden veya KMS'ten). Anahtar rotasyonu için sürüm alanı. _(`createSecretBox`; AAD ile tenant bağlamına bağlı.)_
 - [x] Yapılandırılmış loglama. Log'larda `authorization`, `apiKey`, `apiSecret` alanlarını otomatik maskeleyen redaction. _(`createLogger`, pino.)_
