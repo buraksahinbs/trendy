@@ -51,3 +51,9 @@ Kopyalar: `docs/trendyol-api/ref-*.md` (OpenAPI), `doc-*.md` (kılavuz), `change
 - ⚠️ #2 Stage: "Statik IP'ler için yetkilendirme sağlanamamaktadır" ifadesi hâlâ belirsiz.
 - ⚠️ #5 KDV: pazaryeri dokümanlarında `salePrice`'ın KDV dahil olduğu yazmıyor ("KDV dahil" yalnızca ayrı bir ürün olan İhracat Merkezi dokümanında geçiyor). Trendyol destekten teyit edilmeli.
 - `filterApprovedProductsInventoryAndPrice` içindeki `barcodes` dizisinin sorgu dizesinde nasıl kodlanacağı belirsiz (şema dizi, kılavuz string diyor); kullanılmıyor, tüm ürünler sayfa sayfa geziliyor.
+
+## 2026-09-28 — Senkron dilimi
+
+- ✅ #6 kapandı: `updateUnapprovedProducts` şemasında `quantity`/`salePrice`/`listPrice` alanı yok. Onaysız ürünlerin stok/fiyatı API'den güncellenemez; senkron onları atlar, onaylandıklarında (günlük içe aktarma durumu günceller) gönderim başlar.
+- İlk içe aktarmada `last_sent_*` değerleri Trendyol'daki mevcut stok/fiyatla başlatılır: Trendyol'da zaten doğru olan değer tekrar gönderilmez.
+- Stok/fiyat batch sonucu öğe bazlı okunur (`isBatchComplete`); başarısız öğelerin `last_sent_*` değerleri sıfırlanır ve bir sonraki turda yeniden gönderilir. 4 saat içinde sonuç alınamazsa aynı şekilde yeniden gönderilir.

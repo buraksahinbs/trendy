@@ -421,7 +421,7 @@ docs/
 - [x] `listPrice` kuralı: `listPrice = salePrice` veya `salePrice × katsayı`. Her durumda `listPrice ≥ salePrice` garanti edilir.
 - [~] Komisyon tahmini: Kullanıcı kategori bazında beklenen komisyon oranını girer (MVP'de API'den önceden alınan bir komisyon tablosu kullanılmıyor). Motor minimum kâr marjını buna göre korur. Siparişlerdeki `commission` alanı ile gerçekleşen komisyon ileride karşılaştırılabilir. _(Motor destekliyor; kategori bazlı giriş ekranı yok.)_
 - [x] **Güvenlik sınırları (guardrails):**
-  - Tek seferde fiyat değişimi %X'ten (ör. %30) fazlaysa otomatik gönderme, **onay kuyruğuna** al.
+  - Tek seferde fiyat değişimi %X'ten (ör. %30) fazlaysa otomatik gönderme, **onay kuyruğuna** al. _(Onay kuyruğu: `price_reviews`; `POST /trendyol/price-reviews/:id/approve` onaylanan fiyatı sonraki senkronda gönderir.)_
   - Maliyetin altında satış asla otomatik gönderilmez.
   - Sıfır, negatif veya NaN fiyat hiçbir koşulda gönderilmez.
 - [ ] Simülasyon ekranı: "Bu kural uygulanırsa 1.240 ürünün fiyatı değişir; en büyük 10 değişiklik şunlar."
@@ -441,12 +441,12 @@ docs/
   - Aynı görseli tekrar işlememek için içerik hash'i ile önbellek.
 - [ ] Gruplama: En fazla 1.000 item/istek. Aynı `productMainId`'nin varyantları aynı istekte gönderilir.
 - [ ] Gönderim job'u Write grubu rate limiter'ından geçer. `batchRequestId` `ty_batches`'e kaydedilir.
-- [ ] **Batch sonuç izleme job'u:** Artan aralıklarla sorgular. Sonuç 4 saat içinde alınmalıdır. Item bazında başarı/hata `channel_listings`'e yazılır.
-- [ ] **Onay takibi:** Batch başarılı olsa bile ürün onay sürecine girer. Onaysız ürün filtreleme servisi ile periyodik kontrol edilir: bekleyen / onaylı / reddedildi + red sebepleri.
+- [x] **Batch sonuç izleme job'u:** Artan aralıklarla sorgular. Sonuç 4 saat içinde alınmalıdır. Item bazında başarı/hata `channel_listings`'e yazılır. _(Stok/fiyat batch'leri için: dakikada bir, 4 saati geçen süresi dolmuş sayılır; başarısızlar yeniden gönderilir.)_
+- [~] **Onay takibi:** Batch başarılı olsa bile ürün onay sürecine girer. Onaysız ürün filtreleme servisi ile periyodik kontrol edilir: bekleyen / onaylı / reddedildi + red sebepleri. _(Günlük içe aktarma onaysız ürünleri bekleyen/reddedildi + red sebepleriyle `channel_listings`'e yazar; yeniden gönderme akışı Faz 8 ile.)_
 - [ ] Reddedilen ürünler için panelde "sebep + düzelt + yeniden gönder" akışı. Onaysız ürünler **onaysız güncelleme** servisiyle düzeltilir.
 - [ ] Onaylı ürünlerde içerik değişikliği (başlık, açıklama, görsel) için content/variant güncelleme servisleri. Attribute güncellenirken **tüm** attribute'ların gönderilmesi gerektiğini unutma (dokümanda belirtilmiş).
 - [ ] Idempotency: Aynı ürün iki kez yaratılmaya çalışılmaz. Gönderim öncesi `channel_listings` durumu kontrol edilir.
-- [ ] İlk kurulum için **mevcut Trendyol ürünlerini içe aktarma:** Onaylı ürün filtreleme ile satıcının Trendyol'daki mevcut ürünleri çekilir ve barkod üzerinden kanonik varyantlarla eşleştirilir. Böylece zaten var olan ürünler yeniden yaratılmaya çalışılmaz.
+- [x] İlk kurulum için **mevcut Trendyol ürünlerini içe aktarma:** Onaylı ürün filtreleme ile satıcının Trendyol'daki mevcut ürünleri çekilir ve barkod üzerinden kanonik varyantlarla eşleştirilir. Böylece zaten var olan ürünler yeniden yaratılmaya çalışılmaz. _(`ty_import` job'u: onaylı + stok/fiyat + onaysız taraması; katalogda olmayan barkodlar yönetilmeyen kayıt olarak açılır; tam taramada görülmeyenler `unknown`.)_
 
 **Kabul kriterleri:** Stage'de en az 50 ürün (varyantlılar dahil) yaratılıp onay durumu izlenebiliyor, reddedilen ürün düzeltilip tekrar gönderilebiliyor.
 
@@ -454,15 +454,15 @@ docs/
 
 ### Faz 9 — Stok ve fiyat senkronu
 
-- [ ] Senkron döngüsü: XML çekimi → kanonik güncelleme → hedef stok/fiyat hesaplama → **diff** (`channel_listings.last_sent_*` ile karşılaştırma).
-- [ ] Yalnızca **onaylı** ürünler `updatePriceAndInventory` ile güncellenir. Onaysızlar için stok/fiyat onaysız güncelleme servisinden gider veya kuyrukta bekletilir (hangisi olacağı dokümandan doğrulanıp `DECISIONS.md`'ye yazılır).
-- [ ] 1.000 item/istek, stok ≤ 20.000 (üst sınır aşılırsa 20.000 gönderilir ve not düşülür).
-- [ ] 15 dakika içinde aynı isteği tekrar göndermeme kuralı: Diff yaklaşımı ve job deduplication ile garanti altına alınır.
-- [ ] Barkod başına dakikada ≤30 fiyat güncellemesi kuralı rate limiter'da uygulanır.
-- [ ] **Güvenlik stoğu (opsiyonel):** Tedarikçi stoğu X'in altındaysa Trendyol'a 0 gönder (tedarik edememe riskini azaltır).
-- [ ] Batch sonuçları izlenir. Başarısız item'lar bir sonraki döngüde yeniden denenir.
-- [ ] Senkron sıklığı tenant planına göre ayarlanabilir. Varsayılan değer rate limit hesabıyla belirlenir ve `DECISIONS.md`'ye yazılır.
-- [ ] **Acil durdurma:** Tenant veya tedarikçi bazında senkronu tek tıkla durdurma düğmesi.
+- [x] Senkron döngüsü: XML çekimi → kanonik güncelleme → hedef stok/fiyat hesaplama → **diff** (`channel_listings.last_sent_*` ile karşılaştırma). _(`ty_sync`: `planSync` + `recordSentBatch`; feed değişince hemen, ayrıca 15 dk'da bir.)_
+- [x] Yalnızca **onaylı** ürünler `updatePriceAndInventory` ile güncellenir. Onaysızlar için stok/fiyat onaysız güncelleme servisinden gider veya kuyrukta bekletilir (hangisi olacağı dokümandan doğrulanıp `DECISIONS.md`'ye yazılır). _(Onaysız ürün güncelleme servisinde stok/fiyat alanı yok (DOĞRULA #6 kapandı): onaysızlar atlanır, onaylanınca senkron başlar.)_
+- [x] 1.000 item/istek, stok ≤ 20.000 (üst sınır aşılırsa 20.000 gönderilir ve not düşülür).
+- [x] 15 dakika içinde aynı isteği tekrar göndermeme kuralı: Diff yaklaşımı ve job deduplication ile garanti altına alınır. _(Diff + kuyrukta tenant başına tek senkron işi.)_
+- [x] Barkod başına dakikada ≤30 fiyat güncellemesi kuralı rate limiter'da uygulanır. _(Her barkod bir senkron turunda en fazla bir kez gönderilir; tur aralığı ≥ 1 dk olduğundan sınır aşılamaz.)_
+- [x] **Güvenlik stoğu (opsiyonel):** Tedarikçi stoğu X'in altındaysa Trendyol'a 0 gönder (tedarik edememe riskini azaltır). _(`tenants.safety_stock`)_
+- [x] Batch sonuçları izlenir. Başarısız item'lar bir sonraki döngüde yeniden denenir.
+- [~] Senkron sıklığı tenant planına göre ayarlanabilir. Varsayılan değer rate limit hesabıyla belirlenir ve `DECISIONS.md`'ye yazılır. _(Varsayılan 15 dk + feed değişiminde anında; plan bazlı ayar ekranı yok.)_
+- [x] **Acil durdurma:** Tenant veya tedarikçi bazında senkronu tek tıkla durdurma düğmesi. _(`PATCH /settings { syncPaused }` ve tedarikçi `syncPaused`; duraklatılmışken Trendyol'a hiç istek gitmez.)_
 
 **Kabul kriterleri:** 10.000 varyantlık sentetik senaryoda limitler aşılmadan tam senkron tamamlanıyor, diff sayesinde değişmeyen ürün için istek gönderilmiyor.
 
@@ -580,7 +580,7 @@ docs/
 3. Aracı entegratör olarak Trendyol'a başvuru/kayıt gerekip gerekmediği.
 4. Product V2 `attributes` içindeki doğru alan isimleri (`attributeValueId(s)`, `customAttributeValue` / `attributeValue`).
 5. `salePrice`/`listPrice` değerlerinin KDV dahil mi yorumlandığı.
-6. Onaysız ürünlerde stok/fiyat güncellemesinin hangi servisle yapılacağı.
+6. Onaysız ürünlerde stok/fiyat güncellemesinin hangi servisle yapılacağı. ✅ _Kapandı: onaysız güncelleme servisinde stok/fiyat alanı yok; onay beklenir._
 7. Satıcının listeleme limit seviyesinin API'den öğrenilip öğrenilemeyeceği.
 8. Barkod stratejisi (tedarikçi EAN'ı mı, satıcıya özel barkod mu).
 9. Marka yaratma servisinin onay süreci.

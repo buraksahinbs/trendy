@@ -69,6 +69,7 @@ describe.skipIf(!url)("tedarikçi uçları", () => {
       limiter: new InMemoryRateLimiter(),
       queue: {
         enqueueSupplierFetch: async (p) => (queued.push(p), { queued: true }),
+        enqueueTrendyol: async () => ({ queued: true }),
         close: async () => {},
       },
       sessionTtlMs: 3_600_000,

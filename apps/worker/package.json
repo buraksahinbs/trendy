@@ -10,7 +10,9 @@
   "dependencies": {
     "@trendy/db": "workspace:*",
     "@trendy/jobs": "workspace:*",
+    "@trendy/pricing": "workspace:*",
     "@trendy/shared": "workspace:*",
+    "@trendy/trendyol-client": "workspace:*",
     "@trendy/xml-ingest": "workspace:*",
     "bullmq": "^6.3.9",
     "ioredis": "^6.0.0"

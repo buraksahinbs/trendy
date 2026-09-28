@@ -1,11 +1,28 @@
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": { "rootDir": "src", "outDir": "dist" },
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist"
+  },
   "include": ["src"],
   "references": [
-    { "path": "../../packages/shared" },
-    { "path": "../../packages/db" },
-    { "path": "../../packages/jobs" },
-    { "path": "../../packages/xml-ingest" }
+    {
+      "path": "../../packages/shared"
+    },
+    {
+      "path": "../../packages/db"
+    },
+    {
+      "path": "../../packages/jobs"
+    },
+    {
+      "path": "../../packages/xml-ingest"
+    },
+    {
+      "path": "../../packages/pricing"
+    },
+    {
+      "path": "../../packages/trendyol-client"
+    }
   ]
 }

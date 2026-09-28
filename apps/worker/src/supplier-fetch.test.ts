@@ -289,6 +289,7 @@ describe.skipIf(!url)("tedarikçi XML çekimi", () => {
     const added: XmlFetchPayload[] = [];
     const queue: JobQueue = {
       enqueueSupplierFetch: async (p) => (added.push(p), { queued: true }),
+      enqueueTrendyol: async () => ({ queued: true }),
       close: async () => {},
     };
     const now = new Date(Date.now() + 3_600_000);

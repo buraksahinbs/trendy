@@ -128,3 +128,17 @@
 
 **Gerekçe:** Tek JSON atomik kaydedilir ve sürümlenir; önizleme aynı motoru kullandığı için "ekranda gördüğün = senkrona giden".
 **Alternatif:** Alan başına satır (eski tablo). Varyant modu, dönüşüm zinciri ve özellik listesi için ek tablolar gerekirdi.
+
+## 2026-09-28 — Stok/fiyat senkronu ve Trendyol içe aktarma
+
+**Karar:** Senkron (`ty_sync`), içe aktarma (`ty_import`) ve batch takibi (`poll`) `trendyol` kuyruğunda çalışır. Karar mantığı saf `planSync` fonksiyonundadır.
+**Kurallar:**
+
+- Yalnızca **yönetilen** varyantlar (`variants.managed`, bir feed'den normalize edilmiş) senkronlanır. Trendyol'dan içe aktarılıp hiçbir feed'de olmayan ürünlere dokunulmaz; artık varyantlar yönetilen kalır ve 0 gönderilir.
+- Yalnızca `approved` durumdaki kayıtlar; kilitli, arşivli, kara listedeki, onaysız ve Trendyol'da artık görünmeyen (`unknown`) kayıtlara istek gitmez.
+- Hedef stok: sahipsiz → 0; kaybolan → `missingPolicy` (varsayılan 0); güvenlik stoğunun altı → 0; üst sınır 20.000.
+- Fiyat yalnızca fiyat kuralı, maliyet ve (TRY dışı için) elle girilmiş kur varsa gönderilir; yoksa yalnızca stok. Büyük değişim `price_reviews`'a düşer, onaylanırsa bir sonraki turda gönderilir. Maliyet altı fiyat hiçbir koşulda gönderilmez.
+- Diff: `last_sent_*` ile karşılaştırılır, yalnızca değişen alan gönderilir. Gönderim kaydı Trendyol çağrısından hemen sonra yazılır (başarısız olmaması için batch kaydı çakışmaya dayanıklı).
+- Zamanlama: içe aktarma günlük ve API bilgileri doğrulanınca; senkron 15 dk'da bir ve feed değişince hemen; batch takibi bekleyen batch varsa dakikada bir. İlk içe aktarma yapılmadan senkron yapılmaz.
+
+**Gerekçe:** Yanlış stok/fiyat doğrudan para kaybı ve ürün kilidi demektir; her kural tek bir saf fonksiyonda test edilebilir hâlde tutulur.

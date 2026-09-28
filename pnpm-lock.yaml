@@ -78,9 +78,15 @@ importers:
       '@trendy/jobs':
         specifier: workspace:*
         version: link:../../packages/jobs
+      '@trendy/pricing':
+        specifier: workspace:*
+        version: link:../../packages/pricing
       '@trendy/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@trendy/trendyol-client':
+        specifier: workspace:*
+        version: link:../../packages/trendyol-client
       '@trendy/xml-ingest':
         specifier: workspace:*
         version: link:../../packages/xml-ingest

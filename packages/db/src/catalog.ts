@@ -182,6 +182,7 @@ export async function applyNormalizedItem(
           currency: v.currency,
           attributes: v.attributes,
           images: v.images,
+          managed: true,
         };
         await tx
           .insert(variants)

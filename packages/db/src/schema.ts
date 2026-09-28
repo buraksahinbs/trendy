@@ -48,6 +48,7 @@ export const listingStatus = pgEnum("listing_status", [
   "rejected",
   "locked",
   "archived",
+  "blacklisted",
 ]);
 export const batchType = pgEnum("batch_type", ["create", "update", "price_inventory"]);
 export const batchStatus = pgEnum("batch_status", ["pending", "completed", "failed", "expired"]);
@@ -64,6 +65,16 @@ export const tenants = pgTable("tenants", {
   listingLimitTier: listingTier("listing_limit_tier").notNull().default("50k"),
   /** Acil durdurma (Faz 9): tenant'ın tüm senkronu. */
   syncPaused: boolean("sync_paused").notNull().default(false),
+  /** Senkronun kullanacağı Trendyol ortamı (API bilgileri bu ortam için doğrulanmış olmalı). */
+  syncEnv: trendyolEnv("sync_env").notNull().default("prod"),
+  /** Güvenlik stoğu (Faz 9): tedarikçi stoğu bunun altındaysa Trendyol'a 0 gönderilir. */
+  safetyStock: integer("safety_stock").notNull().default(0),
+  /** Bu orandan büyük fiyat değişimi onay kuyruğuna düşer (0.3 = %30). */
+  maxAutoChangeRate: numeric("max_auto_change_rate", { precision: 5, scale: 4, mode: "number" })
+    .notNull()
+    .default(0.3),
+  /** Elle girilen döviz kurları, ör. `{ "USD": 41.25 }` (1 birim = kaç TL). */
+  fxRates: jsonb("fx_rates").$type<Record<string, number>>().notNull().default({}),
   createdAt: createdAt(),
 });
 
@@ -235,6 +246,12 @@ export const variants = pgTable(
     stock: integer("stock").notNull().default(0),
     attributes: jsonb("attributes").notNull().default({}),
     images: jsonb("images").notNull().default([]),
+    /**
+     * Bir tedarikçi feed'inden gelip normalize edildiyse true. Yalnızca yönetilen varyantların
+     * stok/fiyatı senkronlanır; Trendyol'dan içe aktarılıp hiçbir feed'de olmayanlara dokunulmaz.
+     * Sahipliği bırakılan (artık) varyant yönetilen kalır ve stoğu 0 gönderilir.
+     */
+    managed: boolean("managed").notNull().default(false),
     updatedAt: ts("updated_at").notNull().defaultNow(),
   },
   (t) => [uniqueIndex().on(t.tenantId, t.barcode), index().on(t.productId)],
@@ -280,10 +297,21 @@ export const channelListings = pgTable(
       .references(() => variants.id, { onDelete: "cascade" }),
     tenantId: tenantId(),
     tyStatus: listingStatus("ty_status").notNull().default("unknown"),
+    tyContentId: bigint("ty_content_id", { mode: "number" }),
+    tyOnSale: boolean("ty_on_sale"),
+    lockReason: text("lock_reason"),
+    /** Trendyol'un son okumada bildirdiği değerler (kuruş / adet). */
+    tyPrice: integer("ty_price"),
+    tyListPrice: integer("ty_list_price"),
+    tyStock: integer("ty_stock"),
+    tyCheckedAt: ts("ty_checked_at"),
     lastSentPrice: integer("last_sent_price"),
     lastSentListPrice: integer("last_sent_list_price"),
     lastSentStock: integer("last_sent_stock"),
     lastSentAt: ts("last_sent_at"),
+    lastBatchRequestId: text("last_batch_request_id"),
+    /** Son gönderimde Trendyol'un döndüğü hata (batch sonucu `failureReasons`). */
+    lastError: text("last_error"),
     rejectReasons: jsonb("reject_reasons"),
     updatedAt: ts("updated_at").notNull().defaultNow(),
   },

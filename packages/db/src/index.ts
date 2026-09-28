@@ -5,3 +5,5 @@ export { TENANT_TABLES } from "./schema.js";
 export * from "./accounts.js";
 export * from "./suppliers.js";
 export * from "./catalog.js";
+export * from "./channel.js";
+export * from "./trendyol-admin.js";

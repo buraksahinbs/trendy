@@ -342,9 +342,9 @@ function clampSize(size: number | undefined, max: number): number {
  */
 export async function* paginate<
   T extends {
-    content?: unknown[] | null;
-    totalPages?: number | null;
-    nextPageToken?: string | null;
+    content?: unknown[] | null | undefined;
+    totalPages?: number | null | undefined;
+    nextPageToken?: string | null | undefined;
   },
 >(fetchPage: (p: PageParams) => Promise<T>, size: number): AsyncGenerator<T> {
   let page = 0;

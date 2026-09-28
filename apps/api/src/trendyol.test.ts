@@ -21,6 +21,7 @@ describe.skipIf(!url)("Trendyol API bilgileri uçları", () => {
   let tyServer: http.Server;
   let tyReply: { status: number; body?: unknown } = { status: 200, body: {} };
   let tyRequests: { url: string; headers: http.IncomingHttpHeaders }[] = [];
+  const tyEnqueued: unknown[] = [];
 
   const cookieOf = (res: { cookies: { name: string; value: string }[] }) =>
     `trendy_session=${res.cookies.find((c) => c.name === "trendy_session")!.value}`;
@@ -43,7 +44,11 @@ describe.skipIf(!url)("Trendyol API bilgileri uçları", () => {
       secureCookies: false,
       integratorName: "SelfIntegration",
       trendyolClientOptions: { baseUrl: tyBase, sleep: async () => {} },
-      queue: { enqueueSupplierFetch: async () => ({ queued: true }), close: async () => {} },
+      queue: {
+        enqueueSupplierFetch: async () => ({ queued: true }),
+        enqueueTrendyol: async (p) => (tyEnqueued.push(p), { queued: true }),
+        close: async () => {},
+      },
     };
     app = await buildApp(deps);
 
@@ -181,6 +186,8 @@ describe.skipIf(!url)("Trendyol API bilgileri uçları", () => {
       const res = await verify("prod");
       expect(res.statusCode).toBe(200);
       expect(res.json()).toMatchObject({ verified: true, approvedContentCount: 42 });
+      // Doğrulama sonrası ilk içe aktarma kuyruğa eklenir.
+      expect(tyEnqueued).toContainEqual({ kind: "import", tenantId: ownerTenant });
 
       // Tek bir GET; doğru yol, Basic Auth ve User-Agent.
       expect(tyRequests).toHaveLength(1);

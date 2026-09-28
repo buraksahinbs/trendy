@@ -7,6 +7,7 @@ import type { RateLimiter, TrendyolClientConfig } from "@trendy/trendyol-client"
 import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
 import { ZodError } from "zod";
 import { authRoutes } from "./routes/auth.js";
+import { settingsRoutes } from "./routes/settings.js";
 import { jobRoutes, supplierRoutes } from "./routes/suppliers.js";
 import { trendyolRoutes } from "./routes/trendyol.js";
 
@@ -104,6 +105,7 @@ export async function buildApp(deps: AppDeps) {
   await app.register(trendyolRoutes, { prefix: "/trendyol" });
   await app.register(supplierRoutes, { prefix: "/suppliers" });
   await app.register(jobRoutes, { prefix: "/jobs" });
+  await app.register(settingsRoutes, { prefix: "/settings" });
   return app;
 }
 

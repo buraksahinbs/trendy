@@ -26,7 +26,11 @@ describe.skipIf(!url)("auth API", () => {
       sessionTtlMs: 24 * 3_600_000,
       secureCookies: false,
       integratorName: "SelfIntegration",
-      queue: { enqueueSupplierFetch: async () => ({ queued: true }), close: async () => {} },
+      queue: {
+        enqueueSupplierFetch: async () => ({ queued: true }),
+        enqueueTrendyol: async () => ({ queued: true }),
+        close: async () => {},
+      },
       now: () => clock,
     };
     app = await buildApp(deps);
