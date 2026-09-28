@@ -1,4 +1,4 @@
-import { and, count, desc, eq, isNotNull, sql } from "drizzle-orm";
+import { and, count, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import type { Db, TenantTx } from "./client.js";
 import {
   channelListings,
@@ -81,6 +81,7 @@ export async function listListings(tx: TenantTx, f: ListingFilter) {
   const conds = [
     f.status ? eq(channelListings.tyStatus, f.status) : undefined,
     f.hasError === true ? isNotNull(channelListings.lastError) : undefined,
+    f.hasError === false ? isNull(channelListings.lastError) : undefined,
     f.managed !== undefined ? eq(variants.managed, f.managed) : undefined,
     f.search
       ? sql`(${variants.barcode} ILIKE ${`%${f.search}%`} OR ${products.title} ILIKE ${`%${f.search}%`} OR ${products.productMainId} ILIKE ${`%${f.search}%`})`

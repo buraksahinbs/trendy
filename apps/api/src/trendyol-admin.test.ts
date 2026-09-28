@@ -140,6 +140,8 @@ describe.skipIf(!url)("Trendyol yönetim ve ayar uçları", () => {
     expect(locked.items[0].lockReason).toBe("Kritik fiyat");
     const errs = (await call("owner", "GET", "/trendyol/listings?hasError=true")).json();
     expect(errs.items.map((i: { barcode: string }) => i.barcode)).toEqual(["ERR-1"]);
+    const noErrs = (await call("owner", "GET", "/trendyol/listings?hasError=false")).json();
+    expect(noErrs.items.map((i: { barcode: string }) => i.barcode)).toEqual(["OK-1", "LCK-1"]);
     const managed = (await call("owner", "GET", "/trendyol/listings?managed=false")).json();
     expect(managed.total).toBe(1);
     const search = (await call("owner", "GET", "/trendyol/listings?search=kırmızı")).json();
