@@ -20,6 +20,13 @@ describe("redact", () => {
     });
   });
 
+  it("Error nesnesini mesajıyla korur, özel alanlarını maskeler", () => {
+    const err = Object.assign(new TypeError("bozuk"), { apiKey: "k", status: 401 });
+    expect(redact({ err })).toMatchObject({
+      err: { type: "TypeError", message: "bozuk", apiKey: REDACTED, status: 401 },
+    });
+  });
+
   it("ilkel değerlere dokunmaz", () => {
     expect(redact("x")).toBe("x");
     expect(redact(null)).toBeNull();

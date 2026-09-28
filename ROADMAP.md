@@ -286,14 +286,14 @@ docs/
 
 ### Faz 1 — Proje iskeleti, kimlik doğrulama, tenant yapısı
 
-- [~] Monorepo kurulumu, lint, format, tip kontrolü, CI (her PR'da test + tip kontrolü). _(CI eksik.)_
-- [~] Ortam değişkenleri şeması (Zod ile doğrulanan `.env`). `.env.example` dosyası. _(.env.example var; Zod şeması API ile gelecek.)_
+- [x] Monorepo kurulumu, lint, format, tip kontrolü, CI (her PR'da test + tip kontrolü). _(GitHub Actions: format, lint, typecheck, test + Redis servisi.)_
+- [x] Ortam değişkenleri şeması (Zod ile doğrulanan `.env`). `.env.example` dosyası. _(`@trendy/shared` → `loadEnv`.)_
 - [x] PostgreSQL + Redis için docker-compose (lokal geliştirme).
 - [ ] Kullanıcı kaydı/girişi (e-posta + şifre; oturum veya JWT). Şifre hash'i argon2 veya bcrypt.
 - [ ] Tenant oluşturma, kullanıcıyı tenant'a bağlama, rol yapısı (owner, staff).
 - [ ] Tenant izolasyon testleri: bir tenant'ın başka bir tenant'ın verisine erişemediğini doğrulayan otomatik testler.
-- [ ] Gizli bilgi şifreleme yardımcı fonksiyonu (AES-256-GCM; anahtar ortam değişkeninden veya KMS'ten). Anahtar rotasyonu için sürüm alanı.
-- [ ] Yapılandırılmış loglama. Log'larda `authorization`, `apiKey`, `apiSecret` alanlarını otomatik maskeleyen redaction.
+- [x] Gizli bilgi şifreleme yardımcı fonksiyonu (AES-256-GCM; anahtar ortam değişkeninden veya KMS'ten). Anahtar rotasyonu için sürüm alanı. _(`createSecretBox`; AAD ile tenant bağlamına bağlı.)_
+- [x] Yapılandırılmış loglama. Log'larda `authorization`, `apiKey`, `apiSecret` alanlarını otomatik maskeleyen redaction. _(`createLogger`, pino.)_
 
 **Kabul kriterleri:** Kullanıcı kayıt olup giriş yapabiliyor, CI yeşil, tenant izolasyon testleri geçiyor.
 
@@ -306,7 +306,7 @@ docs/
 - [ ] Changelog'u kontrol et. Bölüm 2'de değişen bir şey varsa bu dosyayı güncelle.
 - [x] Base URL ortama göre seçilir (stage/prod). Tenant bazında ayarlanır.
 - [x] Her isteğe Basic Auth ve `User-Agent: "{sellerId} - {FIRMA_ADI}"` header'ı eklenir. Firma adı ≤30 karakter ve alfanümerik olacak şekilde doğrulanır.
-- [~] _(Bellek içi kayan pencere uygulaması hazır; Redis uygulaması worker ile gelecek. Barkod limiti sabiti tanımlı, senkron job'unda uygulanacak.)_ **Rate limiter** (Redis tabanlı, tenant+grup anahtarlı token bucket):
+- [~] _(Bellek içi ve Redis (Lua, atomik) kayan pencere uygulamaları hazır. Barkod limiti sabiti tanımlı, senkron job'unda uygulanacak.)_ **Rate limiter** (Redis tabanlı, tenant+grup anahtarlı token bucket):
   - Endpoint başına 50 istek / 10 sn.
   - Grup başına dakikalık limit (Read / Write / Inventory&Price / Orders). Değer tenant'ın `listing_limit_tier` ayarından okunur.
   - Barkod başına dakikada ≤30 fiyat güncellemesi.
@@ -317,7 +317,7 @@ docs/
   - 400/401/403/404 → retry yok. Hata job log'a açıklamasıyla yazılır.
 - [x] Hata sınıfları: `TrendyolAuthError`, `TrendyolRateLimitError`, `TrendyolValidationError`, `TrendyolDeprecatedEndpointError`, `TrendyolServerError`.
 - [x] İstek/yanıt loglama (gövde kısaltılmış, gizli bilgiler maskeli), süre ölçümü.
-- [ ] Endpoint fonksiyonları (tipli). Tipler **dokümandaki OpenAPI'den** türetilir, elle uydurulmaz:
+- [ ] Endpoint fonksiyonları (tipli). Tipler **dokümandaki OpenAPI'den** türetilir, elle uydurulmaz: _(Bekliyor: geliştirme ortamı developers.trendyol.com'a erişemiyor; doküman kopyaları `docs/trendyol-api/` altına eklenecek.)_
   - [ ] `getBrands`, `getBrandsByName`
   - [ ] `getCategoryTree`
   - [ ] `getCategoryAttributesV2`, `getCategoryAttributeValuesV2`
